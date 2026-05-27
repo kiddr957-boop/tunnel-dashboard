@@ -1,0 +1,241 @@
+{
+  "samples": [
+    {
+      "id": "s1",
+      "name": "Sample 1 (Knights)",
+      "comp": {
+        "Paper": 10.73,
+        "Card": 7.16,
+        "Plastics — film": 10.03,
+        "Plastics — dense": 9.78,
+        "Putrescibles": 18.66,
+        "Garden waste": 1.21,
+        "Wood": 3.06,
+        "Textiles": 3.03,
+        "Glass": 1.81,
+        "Ferrous metals": 0.55,
+        "Non-ferrous metals": 1.18,
+        "Inerts": 2.58,
+        "Fines (<10mm)": 22.91,
+        "Other / WEEE": 7.32
+      },
+      "measMoist": "38.1",
+      "measVS": "",
+      "measLHV": ""
+    },
+    {
+      "id": "s2",
+      "name": "Sample 2 (Knights)",
+      "comp": {
+        "Paper": 14.5,
+        "Card": 9.66,
+        "Plastics — film": 9.29,
+        "Plastics — dense": 8.88,
+        "Putrescibles": 19.53,
+        "Garden waste": 1.32,
+        "Wood": 2.34,
+        "Textiles": 4.54,
+        "Glass": 3.33,
+        "Ferrous metals": 2.61,
+        "Non-ferrous metals": 1.81,
+        "Inerts": 2.25,
+        "Fines (<10mm)": 13.37,
+        "Other / WEEE": 6.57
+      },
+      "measMoist": "35.6",
+      "measVS": "",
+      "measLHV": ""
+    },
+    {
+      "id": "s3",
+      "name": "Sample 3 (Knights)",
+      "comp": {
+        "Paper": 10.38,
+        "Card": 6.92,
+        "Plastics — film": 9.41,
+        "Plastics — dense": 7.39,
+        "Putrescibles": 19.15,
+        "Garden waste": 3.96,
+        "Wood": 0.26,
+        "Textiles": 6.58,
+        "Glass": 0.88,
+        "Ferrous metals": 0.59,
+        "Non-ferrous metals": 1.84,
+        "Inerts": 1.58,
+        "Fines (<10mm)": 23.73,
+        "Other / WEEE": 7.34
+      },
+      "measMoist": "39.7",
+      "measVS": "",
+      "measLHV": ""
+    },
+    {
+      "id": "s4",
+      "name": "Sample 4",
+      "comp": {
+        "Paper": "13.1",
+        "Card": "8.7",
+        "Plastics — film": "14.6",
+        "Plastics — dense": "11",
+        "Putrescibles": "19.552",
+        "Garden waste": "1.316",
+        "Wood": "1.416",
+        "Textiles": "3.307",
+        "Glass": "1.964",
+        "Ferrous metals": "0.966",
+        "Non-ferrous metals": "2.633",
+        "Inerts": "1.207",
+        "Fines (<10mm)": "15.592",
+        "Other / WEEE": "4.6"
+      },
+      "measMoist": "38",
+      "measVS": "",
+      "measLHV": ""
+    },
+    {
+      "id": "s5",
+      "name": "Sample 5",
+      "comp": {
+        "Paper": "14.316",
+        "Card": "9.544",
+        "Plastics — film": "14.049",
+        "Plastics — dense": "7.709",
+        "Putrescibles": "12.163",
+        "Garden waste": "0.282",
+        "Wood": "1.880",
+        "Textiles": "1.382",
+        "Glass": "2.974",
+        "Ferrous metals": "1.742",
+        "Non-ferrous metals": "2.862",
+        "Inerts": "1.0",
+        "Fines (<10mm)": "24.234",
+        "Other / WEEE": "5.816"
+      },
+      "measMoist": "38",
+      "measVS": "",
+      "measLHV": ""
+    },
+    {
+      "id": "s6",
+      "name": "Sample 6",
+      "comp": {
+        "Paper": 0,
+        "Card": 0,
+        "Plastics — film": 0,
+        "Plastics — dense": 0,
+        "Putrescibles": 0,
+        "Garden waste": 0,
+        "Wood": 0,
+        "Textiles": 0,
+        "Glass": 0,
+        "Ferrous metals": 0,
+        "Non-ferrous metals": 0,
+        "Inerts": 0,
+        "Fines (<10mm)": 0,
+        "Other / WEEE": 0
+      },
+      "measMoist": "",
+      "measVS": "",
+      "measLHV": ""
+    },
+    {
+      "id": "s7",
+      "name": "Sample 7",
+      "comp": {
+        "Paper": 0,
+        "Card": 0,
+        "Plastics — film": 0,
+        "Plastics — dense": 0,
+        "Putrescibles": 0,
+        "Garden waste": 0,
+        "Wood": 0,
+        "Textiles": 0,
+        "Glass": 0,
+        "Ferrous metals": 0,
+        "Non-ferrous metals": 0,
+        "Inerts": 0,
+        "Fines (<10mm)": 0,
+        "Other / WEEE": 0
+      },
+      "measMoist": "",
+      "measVS": "",
+      "measLHV": ""
+    },
+    {
+      "id": "s8",
+      "name": "Sample 8",
+      "comp": {
+        "Paper": 0,
+        "Card": 0,
+        "Plastics — film": 0,
+        "Plastics — dense": 0,
+        "Putrescibles": 0,
+        "Garden waste": 0,
+        "Wood": 0,
+        "Textiles": 0,
+        "Glass": 0,
+        "Ferrous metals": 0,
+        "Non-ferrous metals": 0,
+        "Inerts": 0,
+        "Fines (<10mm)": 0,
+        "Other / WEEE": 0
+      },
+      "measMoist": "",
+      "measVS": "",
+      "measLHV": ""
+    }
+  ],
+  "selIds": [
+    "s5",
+    "s1",
+    "s2"
+  ],
+  "activeSample": "s1",
+  "proc": {
+    "aer": 14,
+    "cycle": 12,
+    "pileDens": 350,
+    "Tin": 10,
+    "RHin": 0.8,
+    "RHout": 0.98,
+    "Tpile": 60,
+    "heatLoss": 0.2,
+    "vsDeg": 0.24,
+    "vsDegRate": 0.02,
+    "Hbio": 17.5,
+    "Hlat": 2.45,
+    "airDens": 1.2,
+    "tgtCycleInv": 10
+  },
+  "fac": {
+    "nTun": 6,
+    "L": 42,
+    "W": 8,
+    "fillH": 4.5,
+    "annTarget": 75000,
+    "tgtMoist": 0.21,
+    "tgtMass": 0.27,
+    "loadUnload": 2
+  },
+  "odour": {
+    "bfArea": 480,
+    "bfDepth": 1,
+    "scDiam": 1.5,
+    "scDepth": 2,
+    "scLiq": 5,
+    "nActive": 5
+  },
+  "wtt": {
+    "aer": 8,
+    "cycle": 12,
+    "moist": 0.18,
+    "massRed": 0.32,
+    "offgas": 4500,
+    "ebrt": 40,
+    "ann": 75000
+  },
+  "sens": {
+    "refCycle": 10,
+    "maxCycle": 14
+  }
+}
