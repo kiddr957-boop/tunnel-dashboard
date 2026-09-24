@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tunnel Loading Planner</title>
+<meta name="description" content="Loading and unloading dashboard for the Coleraine composting tunnels, driven by the WTT annual average mass balance (project 26029, rev 1)." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f4f1;
+  --surface-1: #fcfcfb;
+  --surface-2: #efeeea;
+  --border: #dcdbd5;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #77766f;
+  --accent: #1c5cab;
+  --grid: #e4e3de;
+  --s-water: #2a78d6;
+  --s-org: #eb6834;
+  --s-min: #1baf7a;
+  --s-heat: #e34948;
+  --s-turn: #eda100;
+  --s-comp: #86b6ef;
+  --good: #0f7a3a;
+  --warn: #9a6200;
+  --crit: #b3261e;
+  --good-bg: #e3f3e8;
+  --warn-bg: #fbf0d9;
+  --crit-bg: #fbe4e2;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0e1116;
+    --surface-1: #161a21;
+    --surface-2: #1d222b;
+    --border: #2b313c;
+    --text-primary: #f2f2f0;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8f8e86;
+    --accent: #6da7ec;
+    --grid: #262b34;
+    --s-water: #3987e5;
+    --s-org: #d95926;
+    --s-min: #199e70;
+    --s-heat: #e66767;
+    --s-turn: #c98500;
+    --s-comp: #1c5cab;
+    --good: #5fcf8a;
+    --warn: #f0b84a;
+    --crit: #ff8a80;
+    --good-bg: #13291c;
+    --warn-bg: #2d2412;
+    --crit-bg: #331715;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1116;
+  --surface-1: #161a21;
+  --surface-2: #1d222b;
+  --border: #2b313c;
+  --text-primary: #f2f2f0;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8f8e86;
+  --accent: #6da7ec;
+  --grid: #262b34;
+  --s-water: #3987e5;
+  --s-org: #d95926;
+  --s-min: #199e70;
+  --s-heat: #e66767;
+  --s-turn: #c98500;
+  --s-comp: #1c5cab;
+  --good: #5fcf8a;
+  --warn: #f0b84a;
+  --crit: #ff8a80;
+  --good-bg: #13291c;
+  --warn-bg: #2d2412;
+  --crit-bg: #331715;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.num, td.n, .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+header.top {
+  padding: 20px 24px 12px;
+  display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+header.top h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+header.top .meta { color: var(--text-secondary); font-size: 13px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select {
+  font: inherit; font-size: 13px;
+  background: var(--surface-1); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button.active { background: var(--accent); border-color: var(--accent); color: var(--surface-1); }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; border-right: 1px solid var(--border); }
+.seg button:last-child { border-right: 0; }
+main { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 20px; padding: 20px 24px 48px; max-width: 1600px; margin: 0 auto; }
+@media (max-width: 1000px) { main { grid-template-columns: minmax(0, 1fr); padding: 16px; } header.top { padding: 16px; } }
+aside.inputs { display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px; min-width: 0; }
+.card h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+.card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.card .sub { color: var(--text-secondary); font-size: 13px; margin: 0 0 12px; }
+details.grp { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; }
+details.grp > summary { padding: 10px 14px; cursor: pointer; font-weight: 600; font-size: 13px; list-style: none; display: flex; justify-content: space-between; }
+details.grp > summary::after { content: "+"; color: var(--text-muted); }
+details.grp[open] > summary::after { content: "–"; }
+details.grp .fields { padding: 0 14px 12px; display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; }
+.fields label { font-size: 13px; color: var(--text-secondary); }
+.fields label .asm { color: var(--warn); font-size: 11px; margin-left: 4px; }
+.fields .inp { display: flex; align-items: center; gap: 4px; }
+.fields input {
+  width: 96px; text-align: right; font: inherit; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--border); border-radius: 5px; padding: 4px 6px;
+}
+.fields input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.fields input.changed { border-color: var(--warn); }
+.fields .u { font-size: 11px; color: var(--text-muted); width: 44px; }
+.content { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.kpi .l { font-size: 12px; color: var(--text-secondary); }
+.kpi .v { font-size: 24px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; letter-spacing: -0.02em; margin-top: 2px; }
+.kpi .v small { font-size: 13px; font-weight: 400; color: var(--text-secondary); margin-left: 3px; }
+.kpi .s { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 1200px) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 6px 8px; border-bottom: 1px solid var(--grid); text-align: left; white-space: nowrap; }
+th { font-weight: 600; color: var(--text-secondary); font-size: 12px; }
+td.n, th.n { text-align: right; }
+tr.tot td { font-weight: 600; border-top: 1px solid var(--border); }
+.tblwrap { overflow-x: auto; }
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; border-radius: 999px; padding: 1px 8px; font-weight: 500; }
+.pill.ok { background: var(--good-bg); color: var(--good); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.crit { background: var(--crit-bg); color: var(--crit); }
+.alerts { display: flex; flex-direction: column; gap: 8px; }
+.alert { display: flex; gap: 10px; align-items: flex-start; border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+.alert .ic { font-weight: 700; flex: none; width: 18px; text-align: center; }
+.alert.warn { background: var(--warn-bg); color: var(--text-primary); } .alert.warn .ic { color: var(--warn); }
+.alert.crit { background: var(--crit-bg); color: var(--text-primary); } .alert.crit .ic { color: var(--crit); }
+.alert.info { background: var(--surface-2); color: var(--text-primary); } .alert.info .ic { color: var(--accent); }
+.alert.ok { background: var(--good-bg); color: var(--text-primary); } .alert.ok .ic { color: var(--good); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--text-secondary); margin: 4px 0 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+.chart { width: 100%; display: block; }
+#tip {
+  position: fixed; pointer-events: none; z-index: 20; display: none;
+  background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.25); max-width: 280px;
+}
+#tip b { font-weight: 600; }
+#tip .r { display: flex; justify-content: space-between; gap: 14px; }
+#tip .r span:last-child { font-family: 'IBM Plex Mono', monospace; }
+.tunnels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 700px) { .tunnels { grid-template-columns: minmax(0, 1fr); } }
+.gantt-wrap { overflow-x: auto; }
+.foot { color: var(--text-muted); font-size: 12px; }
+.foot ul { margin: 6px 0 0; padding-left: 18px; }
+.cmp td.best { font-weight: 600; }
+@media print {
+  aside.inputs, .toolbar { display: none; }
+  main { grid-template-columns: 1fr; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Tunnel loading &amp; unloading planner</h1>
+    <div class="meta">Coleraine · client Riverridge · WTT mass balance, project 26029, rev 1 (preliminary, 27/08/2026)</div>
+  </div>
+  <div class="toolbar">
+    <div class="seg" id="presetSeg" role="group" aria-label="Scenario">
+      <button data-preset="t3">WTT · 3 tunnels</button>
+      <button data-preset="t4">WTT · 4 tunnels</button>
+      <button data-preset="custom" disabled>Custom</button>
+    </div>
+    <button id="btnReset" title="Reload the selected WTT scenario">Reset</button>
+    <button id="btnCsv" title="Download the weekly schedule as CSV">Export CSV</button>
+    <button id="btnTheme" title="Toggle light/dark">◐</button>
+  </div>
+</header>
+
+<main>
+  <aside class="inputs" id="inputs"></aside>
+
+  <div class="content">
+    <section class="kpis" id="kpis"></section>
+
+    <section class="card">
+      <h2>Checks &amp; warnings</h2>
+      <p class="sub">Operational limits, mass-balance closure and inconsistencies found in the WTT source sheet.</p>
+      <div class="alerts" id="alerts"></div>
+    </section>
+
+    <section class="row2">
+      <div class="card">
+        <h2>Mass balance by stage</h2>
+        <p class="sub">Annual tonnage split into water, organic dry solids and mineral dry solids. Each gap between bars is what the tunnels remove.</p>
+        <div class="legend">
+          <span><i style="background:var(--s-water)"></i>Water</span>
+          <span><i style="background:var(--s-org)"></i>Organic DS</span>
+          <span><i style="background:var(--s-min)"></i>Mineral DS</span>
+        </div>
+        <svg class="chart" id="massChart" role="img" aria-label="Mass balance stacked bars"></svg>
+      </div>
+      <div class="card">
+        <h2>Model vs WTT sheet</h2>
+        <p class="sub">The model recomputes the WTT figures from rates. The difference column should be ≈0 for unedited scenarios.</p>
+        <div class="tblwrap"><table id="valTable"></table></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Tunnel loading per batch</h2>
+      <p class="sub">Cross-section of one tunnel at filling. Filling height = volume ÷ ((length − dead length) × width).</p>
+      <div class="tunnels" id="tunnels"></div>
+    </section>
+
+    <section class="card">
+      <h2>Tunnel schedule (2 weeks, steady state)</h2>
+      <p class="sub">Each turnaround day: empty the tunnel and refill it the same day. Phase 1 output goes straight to a phase 2 tunnel emptied that day.</p>
+      <div class="legend">
+        <span><i style="background:var(--s-turn)"></i>Turnaround (empty + fill) ⇅</span>
+        <span><i style="background:var(--s-heat)"></i>Additional heat (phase 2)</span>
+        <span><i style="background:var(--s-comp)"></i>Composting</span>
+      </div>
+      <div class="gantt-wrap"><svg id="gantt" role="img" aria-label="Tunnel schedule Gantt chart"></svg></div>
+    </section>
+
+    <section class="card">
+      <h2>Daily handling plan (typical week)</h2>
+      <p class="sub">Tonnes and volumes moved per day, loader time and truck movements.</p>
+      <div class="tblwrap"><table id="dayTable"></table></div>
+    </section>
+
+    <section class="row2">
+      <div class="card">
+        <h2>Reception bunker level</h2>
+        <p class="sub">End-of-day stock of fresh waste. Deliveries arrive evenly on delivery days and phase 1 tunnels take it in batches.</p>
+        <svg class="chart" id="bufChart" role="img" aria-label="Reception bunker level by day"></svg>
+        <div id="bufNote" class="foot"></div>
+      </div>
+      <div class="card">
+        <h2>Scenario comparison</h2>
+        <p class="sub">Both WTT layouts run through the same model with your current operational and equipment inputs.</p>
+        <div class="tblwrap"><table id="cmpTable" class="cmp"></table></div>
+      </div>
+    </section>
+
+    <section class="card foot">
+      <b>Model basis</b>
+      <ul>
+        <li>Water evaporation is a % of the water entering each phase. Organics degradation is a % of the organic dry solids entering. Both default to the rates implied by the WTT sheet, so the balance scales with throughput.</li>
+        <li>Additional heat evaporates water at the latent heat set (default 2,500 kJ/kg, which reproduces WTT's −1,847 t/yr from 1,282,814 kWh/yr).</li>
+        <li>Batch size = annual tonnage ÷ (operating weeks × tunnels per week). Tunnels per week = active tunnels × 7 ÷ cycle days (the WTT method).</li>
+        <li>Dead length (1.5 m) is back-calculated from WTT's filling heights. It is the tunnel length not available for the pile (door and air-plenum zone).</li>
+        <li>Inputs marked <span style="color:var(--warn)">assumed</span> are not in the WTT sheet. Replace them with site data.</li>
+      </ul>
+    </section>
+  </div>
+</main>
+<div id="tip"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Source data: WTT sheet, project 26029 rev 1 ----------
+  const WTT = {
+    t3: { label: "WTT · 3 tunnels",
+      p1: { N: 3, L: 40, perWeek: 3, t: 481, m3: 1374, fill: 4.46 },
+      p2: { N: 3, L: 33, perWeek: 3, t: 384, m3: 1097, fill: 4.35 },
+      kwPerTunnel: 85, kwTotal: 256 },
+    t4: { label: "WTT · 4 tunnels",
+      p1: { N: 4, L: 31, perWeek: 4, t: 361, m3: 1030, fill: 4.37 },
+      p2: { N: 4, L: 25, perWeek: 4, t: 288, m3: 823, fill: 4.38 },
+      kwPerTunnel: 85, kwTotal: 256 },
+    common: {
+      Q: 75000, DS: 63, ODS: 44, rho: 0.35, vol: 214286,
+      evap1: 13022, deg1: 2068, out1: 59910, DS1: 75, ODS1: 41,
+      evap2: 4814, deg2: 764, heatEvap: 1847, out2: 52486, DS2: 84, ODS2: 40,
+      kWh: 1282814, heatDays: 4, reduction: 30.02
+    }
+  };
+  // Rates implied by WTT (13,022 of 27,750 t water, 2,068 of 20,790 t organic DS, etc.)
+  const RATE = {
+    e1: 13022 / 27750 * 100, d1: 2068 / 20790 * 100,
+    e2: 4814 / 14728 * 100,  d2: 764 / 18722 * 100
+  };
+
+  // ---------- Input schema ----------
+  const GROUPS = [
+    { id: "feed", title: "Feed (average of samples 1–5)", open: true, fields: [
+      ["Q", "Throughput", "t/yr", 75000, 100],
+      ["DS", "Dry solids", "%", 63, 0.1],
+      ["ODS", "Organic DS (of DS)", "%", 44, 0.1],
+      ["rho", "Bulk density", "t/m³", 0.35, 0.01]
+    ]},
+    { id: "p1", title: "Phase 1 tunnels", open: true, fields: [
+      ["N1", "Active tunnels", "#", 3, 1],
+      ["c1", "Cycle duration", "days", 7, 1],
+      ["L1", "Length", "m", 40, 0.5],
+      ["W1", "Width", "m", 8, 0.5],
+      ["H1", "Height", "m", 6, 0.1],
+      ["e1", "Water evaporation", "% water", +RATE.e1.toFixed(4), 0.1],
+      ["d1", "Organics degradation", "% ODS", +RATE.d1.toFixed(4), 0.1]
+    ]},
+    { id: "p2", title: "Phase 2 tunnels", open: true, fields: [
+      ["N2", "Active tunnels", "#", 3, 1],
+      ["c2", "Cycle duration", "days", 7, 1],
+      ["L2", "Length", "m", 33, 0.5],
+      ["W2", "Width", "m", 8, 0.5],
+      ["H2", "Height", "m", 6, 0.1],
+      ["rho2", "Bulk density in", "t/m³", 0.35, 0.01],
+      ["e2", "Water evaporation", "% water", +RATE.e2.toFixed(4), 0.1],
+      ["d2", "Organics degradation", "% ODS", +RATE.d2.toFixed(4), 0.1]
+    ]},
+    { id: "heat", title: "Phase 2 additional heat", open: false, fields: [
+      ["kWh", "Heat input", "kWh/yr", 1282814, 1000],
+      ["hDays", "Heating days / batch", "days", 4, 1],
+      ["latent", "Latent heat", "kJ/kg", 2500, 10]
+    ]},
+    { id: "ops", title: "Operations", open: false, fields: [
+      ["weeks", "Operating weeks", "wk/yr", 52, 1],
+      ["workDays", "Tunnel working days", "d/wk", 5, 1, true],
+      ["delDays", "Delivery days", "d/wk", 5, 1, true],
+      ["dead", "Dead length", "m", 1.5, 0.1],
+      ["maxFill", "Max filling height", "m", 4.5, 0.05, true]
+    ]},
+    { id: "equip", title: "Equipment & logistics", open: false, fields: [
+      ["bucket", "Loader bucket (effective)", "m³", 6, 0.5, true],
+      ["bCycle", "Loader cycle", "min", 2, 0.1, true],
+      ["shift", "Loader hours available", "h/day", 8, 0.5, true],
+      ["rhoOut", "Output bulk density", "t/m³", 0.35, 0.01, true],
+      ["payIn", "Inbound payload", "t/truck", 20, 1, true],
+      ["payOut", "Outbound payload", "t/truck", 25, 1, true]
+    ]}
+  ];
+  const DEFAULTS = {};
+  GROUPS.forEach(g => g.fields.forEach(f => DEFAULTS[f[0]] = f[3]));
+
+  function presetValues(key) {
+    const p = WTT[key];
+    return Object.assign({}, DEFAULTS, { N1: p.p1.N, L1: p.p1.L, N2: p.p2.N, L2: p.p2.L });
+  }
+
+  // ---------- State ----------
+  const STORE = "tunnel_loading_v1";
+  let state = { preset: "t3", v: presetValues("t3") };
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE) || "null");
+    if (s && s.v) state = { preset: s.preset || "custom", v: Object.assign({}, DEFAULTS, s.v) };
+  } catch (e) {}
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+
+  // ---------- Formatting ----------
+  const nf = (d) => new Intl.NumberFormat("en-GB", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const F0 = nf(0), F1 = nf(1), F2 = nf(2);
+  const f0 = x => F0.format(x), f1 = x => F1.format(x), f2 = x => F2.format(x);
+  const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  // ---------- Model ----------
+  function turnaroundOffsets(N, c, workDays) {
+    const cand = [];
+    for (let d = 0; d < c; d++) if ((d % 7) < workDays) cand.push(d);
+    if (!cand.length) for (let d = 0; d < c; d++) cand.push(d);
+    const out = [];
+    for (let i = 0; i < N; i++) {
+      const idx = N === 1 ? 0 : Math.round(i * (cand.length - 1) / (N - 1));
+      out.push(cand[Math.min(idx, cand.length - 1)]);
+    }
+    return out;
+  }
+  const mod = (a, b) => ((a % b) + b) % b;
+
+  function compute(v) {
+    const r = {};
+    // Mass balance
+    const W0 = v.Q * (1 - v.DS / 100), DS0 = v.Q * v.DS / 100, O0 = DS0 * v.ODS / 100, M = DS0 - O0;
+    const evap1 = W0 * v.e1 / 100, deg1 = O0 * v.d1 / 100;
+    const W1 = W0 - evap1, O1 = O0 - deg1, out1 = v.Q - evap1 - deg1;
+    const evap2 = W1 * v.e2 / 100, deg2 = O1 * v.d2 / 100;
+    const kWhPerT = v.latent / 3.6; // kJ/kg → kWh/t
+    const heatEvapRaw = v.kWh / kWhPerT;
+    const heatEvap = Math.min(heatEvapRaw, Math.max(0, W1 - evap2));
+    const W2 = W1 - evap2 - heatEvap, O2 = O1 - deg2, out2 = out1 - evap2 - deg2 - heatEvap;
+    r.mb = { W0, O0, M, evap1, deg1, W1, O1, out1, evap2, deg2, heatEvap, heatEvapRaw, W2, O2, out2,
+      DS1: (O1 + M) / out1 * 100, ODS1: O1 / (O1 + M) * 100,
+      DS2: (O2 + M) / out2 * 100, ODS2: O2 / (O2 + M) * 100,
+      reduction: (1 - out2 / v.Q) * 100 };
+
+    // Tunnels
+    const c1 = Math.max(1, Math.round(v.c1)), c2 = Math.max(1, Math.round(v.c2));
+    const b1 = v.N1 * 7 / v.c1, b2 = v.N2 * 7 / v.c2;
+    const t1 = v.Q / (v.weeks * b1), m31 = t1 / v.rho;
+    const t2 = out1 / (v.weeks * b2), m32 = t2 / v.rho2;
+    const u1 = out1 / (v.weeks * b1); // t out of each phase 1 tunnel
+    const u2 = out2 / (v.weeks * b2);
+    const eff1 = Math.max(0.1, v.L1 - v.dead) * v.W1, eff2 = Math.max(0.1, v.L2 - v.dead) * v.W2;
+    r.p1 = { N: v.N1, c: c1, perWeek: b1, t: t1, m3: m31, fill: m31 / eff1, out: u1, H: v.H1, L: v.L1, W: v.W1 };
+    r.p2 = { N: v.N2, c: c2, perWeek: b2, t: t2, m3: m32, fill: m32 / eff2, out: u2, H: v.H2, L: v.L2, W: v.W2 };
+    r.batches2yr = v.weeks * b2;
+    r.kwPerTunnel = v.kWh / (r.batches2yr * v.hDays * 24);
+    r.kwWtt = r.kwPerTunnel * v.N2;
+
+    // Schedule over 28 days (steady state, repeating backwards)
+    const H = 28;
+    const off1 = turnaroundOffsets(v.N1, c1, v.workDays), off2 = turnaroundOffsets(v.N2, c2, v.workDays);
+    const state1 = off1.map(o => Array.from({ length: H }, (_, d) => mod(d - o, c1)));
+    const state2 = off2.map(o => Array.from({ length: H }, (_, d) => mod(d - o, c2)));
+    r.off1 = off1; r.off2 = off2; r.state1 = state1; r.state2 = state2;
+
+    const days = [];
+    const delPerDay = v.Q / (v.weeks * v.delDays);
+    let rec = 0, trans = 0, peakHeat = 0, weekendTurn = 0;
+    for (let d = 0; d < H; d++) {
+      const dow = d % 7;
+      const f1 = state1.map((s, i) => s[d] === 0 ? i : -1).filter(i => i >= 0);
+      const f2 = state2.map((s, i) => s[d] === 0 ? i : -1).filter(i => i >= 0);
+      const heating = v.kWh > 0 ? state2.filter(s => s[d] >= 1 && s[d] <= v.hDays).length : 0;
+      peakHeat = Math.max(peakHeat, heating);
+      if (dow >= v.workDays && (f1.length || f2.length)) weekendTurn++;
+      const del = dow < v.delDays ? delPerDay : 0;
+      const fresh = f1.length * t1, p1out = f1.length * u1, p2in = f2.length * t2, p2out = f2.length * u2;
+      rec += del - fresh; trans += p1out - p2in;
+      const vFresh = fresh / v.rho, vTrans = p1out / v.rho2, vOut = p2out / v.rhoOut;
+      const buckets = Math.ceil(vFresh / v.bucket) + Math.ceil(vTrans / v.bucket) + Math.ceil(vOut / v.bucket);
+      days.push({ d, dow, del, f1, f2, fresh, p1out, p2in, p2out, vFresh, vTrans, vOut, buckets,
+        loaderH: buckets * v.bCycle / 60, trucksIn: del / v.payIn, trucksOut: p2out / v.payOut,
+        heating, rec, trans });
+    }
+    // Buffer sizing on the last 2 weeks (steady state)
+    const ss = days.slice(14);
+    const recMin = Math.min(...ss.map(x => x.rec)), recMax = Math.max(...ss.map(x => x.rec));
+    const trMin = Math.min(...ss.map(x => x.trans)), trMax = Math.max(...ss.map(x => x.trans));
+    ss.forEach(x => { x.recLevel = x.rec - recMin; x.transLevel = x.trans - trMin; });
+    r.days = ss;
+    r.recCap = recMax - recMin;
+    r.transCap = trMax - trMin;
+    r.peakHeat = peakHeat;
+    r.peakKw = peakHeat * r.kwPerTunnel;
+    r.weekendTurn = weekendTurn;
+    r.delPerDay = delPerDay;
+    r.maxLoaderH = Math.max(...ss.map(x => x.loaderH));
+    r.weekLoaderH = ss.slice(0, 7).reduce((a, x) => a + x.loaderH, 0);
+    return r;
+  }
+
+  // ---------- Inputs UI ----------
+  const inputsEl = document.getElementById("inputs");
+  function buildInputs() {
+    inputsEl.innerHTML = GROUPS.map(g => `
+      <details class="grp" ${g.open ? "open" : ""}>
+        <summary>${esc(g.title)}</summary>
+        <div class="fields">
+          ${g.fields.map(([k, lab, u, , step, asm]) => `
+            <label for="in_${k}">${esc(lab)}${asm ? '<span class="asm">assumed</span>' : ""}</label>
+            <span class="inp"><input id="in_${k}" data-k="${k}" type="number" step="${step}" inputmode="decimal"><span class="u">${esc(u)}</span></span>`).join("")}
+        </div>
+      </details>`).join("");
+    inputsEl.addEventListener("input", e => {
+      const k = e.target.dataset && e.target.dataset.k;
+      if (!k) return;
+      const x = parseFloat(e.target.value);
+      if (!isFinite(x)) return;
+      state.v[k] = x;
+      state.preset = matchPreset(state.v);
+      render();
+    });
+  }
+  function matchPreset(v) {
+    for (const key of ["t3", "t4"]) {
+      const p = presetValues(key);
+      if (Object.keys(p).every(k => Math.abs(p[k] - v[k]) < 1e-9)) return key;
+    }
+    return "custom";
+  }
+  function syncInputs() {
+    const ref = state.preset === "custom" ? null : presetValues(state.preset);
+    inputsEl.querySelectorAll("input[data-k]").forEach(inp => {
+      const k = inp.dataset.k;
+      if (document.activeElement !== inp) inp.value = state.v[k];
+      const base = presetValues(state.preset === "t4" ? "t4" : "t3");
+      inp.classList.toggle("changed", !ref && Math.abs(base[k] - state.v[k]) > 1e-9);
+    });
+    document.querySelectorAll("#presetSeg button").forEach(b => b.classList.toggle("active", b.dataset.preset === state.preset));
+  }
+
+  // ---------- Tooltip ----------
+  const tip = document.getElementById("tip");
+  function showTip(e, html) {
+    tip.innerHTML = html; tip.style.display = "block";
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = e.clientX + 14, y = e.clientY + 14;
+    if (x + w > innerWidth - 8) x = e.clientX - w - 14;
+    if (y + h > innerHeight - 8) y = e.clientY - h - 14;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hideTip() { tip.style.display = "none"; }
+  function bindTips(svg) {
+    svg.querySelectorAll("[data-tip]").forEach(el => {
+      el.addEventListener("mousemove", e => showTip(e, el.getAttribute("data-tip")));
+      el.addEventListener("mouseleave", hideTip);
+    });
+  }
+  const tr = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
+
+  // ---------- Render: KPIs ----------
+  function renderKpis(v, r) {
+    const k = (l, val, unit, s) => `<div class="kpi"><div class="l">${l}</div><div class="v">${val}<small>${unit}</small></div><div class="s">${s}</div></div>`;
+    document.getElementById("kpis").innerHTML = [
+      k("Fresh waste per P1 tunnel", f0(r.p1.t), "t", `${f0(r.p1.m3)} m³ · fill ${f2(r.p1.fill)} m`),
+      k("Transfer per P2 tunnel", f0(r.p2.t), "t", `${f0(r.p2.m3)} m³ · fill ${f2(r.p2.fill)} m`),
+      k("Turnarounds / week", f1(r.p1.perWeek + r.p2.perWeek), "", `P1 ${f1(r.p1.perWeek)} · P2 ${f1(r.p2.perWeek)}`),
+      k("Output (phase 2)", f0(r.mb.out2), "t/yr", `DS ${f0(r.mb.DS2)}% · reduction ${f2(r.mb.reduction)}%`),
+      k("Reception bunker", f0(r.recCap), "t", `${f0(r.recCap / v.rho)} m³ steady-state swing`),
+      k("Loader time, peak day", f1(r.maxLoaderH), "h", `${Math.ceil(r.maxLoaderH / v.shift)} loader(s) at ${f0(v.shift)} h · ${f0(r.weekLoaderH)} h/week`)
+    ].join("");
+  }
+
+  // ---------- Render: alerts ----------
+  function renderAlerts(v, r) {
+    const A = [];
+    const add = (lvl, msg) => A.push({ lvl, msg });
+    [["Phase 1", r.p1], ["Phase 2", r.p2]].forEach(([n, p]) => {
+      if (p.fill > p.H) add("crit", `${n}: filling height ${f2(p.fill)} m is higher than the tunnel (${f1(p.H)} m).`);
+      else if (p.fill > v.maxFill) add("warn", `${n}: filling height ${f2(p.fill)} m is above the ${f2(v.maxFill)} m limit. Add a tunnel, lengthen the tunnels or shorten the cycle.`);
+      else add("ok", `${n}: filling height ${f2(p.fill)} m, within the ${f2(v.maxFill)} m limit (${f2(v.maxFill - p.fill)} m spare).`);
+      if (Math.abs(p.perWeek - Math.round(p.perWeek)) > 1e-6) add("warn", `${n}: ${f2(p.perWeek)} tunnels/week is not a whole number, so the weekly pattern repeats unevenly. Choose a cycle so that tunnels × 7 ÷ cycle is an integer.`);
+    });
+    if (r.weekendTurn) add("warn", `Some turnarounds land outside the ${v.workDays} working days/week (see the schedule). Adjust the cycle length or the working days.`);
+    if (r.transCap > 1) add("warn", `Phase 1 and phase 2 turnarounds don't line up. About ${f0(r.transCap)} t (${f0(r.transCap / v.rho2)} m³) of intermediate storage is needed between phases.`);
+    else add("ok", "Every phase 1 unload feeds a phase 2 tunnel on the same day. No intermediate storage is needed.");
+    if (r.maxLoaderH > v.shift) add("crit", `Peak-day loader time ${f1(r.maxLoaderH)} h exceeds the ${f1(v.shift)} h available. That needs ${Math.ceil(r.maxLoaderH / v.shift)} loaders on turnaround days, a bigger bucket, or turnarounds spread over more days. (Bucket size and cycle time are assumed. Check them first.)`);
+    if (r.mb.heatEvapRaw > r.mb.heatEvap + 0.5) add("crit", "The additional heat input would evaporate more water than phase 2 still contains. The heat evaporation has been capped.");
+    const clos = v.Q - r.mb.evap1 - r.mb.deg1 - r.mb.evap2 - r.mb.deg2 - r.mb.heatEvap - r.mb.out2;
+    if (Math.abs(clos) < 0.5) add("ok", `Mass balance closes: ${f0(v.Q)} t in = ${f0(r.mb.out2)} t out + ${f0(v.Q - r.mb.out2)} t losses.`);
+    // Source-sheet issues
+    if (state.preset === "t4" || v.N2 !== 3) {
+      add("info", `WTT 4-tunnel sheet shows 85 kW/tunnel, but 256 kW ÷ 4 tunnels = 64 kW. It looks like a stale value from the 3-tunnel case. At the current inputs: ${f1(r.kwPerTunnel)} kW per heated tunnel, ${f0(r.kwWtt)} kW if all ${v.N2} tunnels heat at once (WTT method).`);
+    }
+    add("info", `Heat demand: the WTT method sizes ${f0(r.kwWtt)} kW (all phase 2 tunnels heating together). With this staggered schedule no more than ${r.peakHeat} tunnel(s) heat at once, so the peak is ${f0(r.peakKw)} kW.`);
+    add("info", "WTT treats organics degradation as a pure dry-solids loss. In reality aerobic degradation also releases water, so real evaporation load and output moisture will be somewhat higher.");
+    const icon = { ok: "✓", warn: "!", crit: "✕", info: "i" };
+    const order = { crit: 0, warn: 1, info: 2, ok: 3 };
+    A.sort((a, b) => order[a.lvl] - order[b.lvl]);
+    document.getElementById("alerts").innerHTML = A.map(a => `<div class="alert ${a.lvl}"><span class="ic">${icon[a.lvl]}</span><span>${a.msg}</span></div>`).join("");
+  }
+
+  // ---------- Render: mass balance chart ----------
+  function renderMass(v, r) {
+    const svg = document.getElementById("massChart");
+    const W = svg.clientWidth || 600, rowH = 34, gap = 30, left = 110, right = 70, top = 8;
+    const stages = [
+      { n: "Input", w: r.mb.W0, o: r.mb.O0, m: r.mb.M, sub: `DS ${f0(v.DS)}% · ODS ${f0(v.ODS)}%` },
+      { n: "Out phase 1", w: r.mb.W1, o: r.mb.O1, m: r.mb.M, sub: `DS ${f0(r.mb.DS1)}% · ODS ${f0(r.mb.ODS1)}%`,
+        loss: [["Evaporation", r.mb.evap1], ["Degradation", r.mb.deg1]] },
+      { n: "Out phase 2", w: r.mb.W2, o: r.mb.O2, m: r.mb.M, sub: `DS ${f0(r.mb.DS2)}% · ODS ${f0(r.mb.ODS2)}%`,
+        loss: [["Evaporation", r.mb.evap2], ["Degradation", r.mb.deg2], ["Heat evaporation", r.mb.heatEvap]] }
+    ];
+    const H = top + stages.length * (rowH + gap);
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H);
+    const sx = (W - left - right) / v.Q;
+    let s = "";
+    stages.forEach((st, i) => {
+      const y = top + i * (rowH + gap);
+      const tot = st.w + st.o + st.m;
+      s += `<text x="0" y="${y + 14}" font-size="12" font-weight="600" fill="var(--text-primary)">${st.n}</text>`;
+      s += `<text x="0" y="${y + 29}" font-size="11" fill="var(--text-muted)">${st.sub}</text>`;
+      let x = left;
+      [["Water", st.w, "var(--s-water)"], ["Organic DS", st.o, "var(--s-org)"], ["Mineral DS", st.m, "var(--s-min)"]].forEach(([lab, val, col], j) => {
+        const w = Math.max(0, val * sx - 2);
+        const rx = j === 2 ? 4 : 0;
+        s += `<rect x="${x}" y="${y}" width="${w}" height="${rowH}" fill="${col}" rx="${rx}" data-tip="${esc(`<b>${st.n} · ${lab}</b>` + tr("Tonnes/yr", f0(val)) + tr("Share", f1(val / tot * 100) + "%"))}"/>`;
+        x += val * sx;
+      });
+      s += `<text x="${left + tot * sx + 6}" y="${y + rowH / 2 + 4}" font-size="12" class="num" fill="var(--text-primary)" font-family="IBM Plex Mono">${f0(tot)} t</text>`;
+      if (st.loss) {
+        const lossTot = st.loss.reduce((a, l) => a + l[1], 0);
+        s += `<text x="${left}" y="${y - 8}" font-size="11" fill="var(--text-muted)">− ${st.loss.map(l => `${l[0].toLowerCase()} ${f0(l[1])} t`).join(" · ")} (${f0(lossTot)} t)</text>`;
+      }
+    });
+    svg.innerHTML = s;
+    bindTips(svg);
+  }
+
+  // ---------- Render: validation table ----------
+  function renderValidation(v, r) {
+    const key = state.preset === "t4" ? "t4" : "t3";
+    const w = WTT[key], c = WTT.common;
+    const rows = [
+      ["Phase 1 water evaporation", c.evap1, r.mb.evap1, "t/yr", 0],
+      ["Phase 1 organics degradation", c.deg1, r.mb.deg1, "t/yr", 0],
+      ["Output phase 1", c.out1, r.mb.out1, "t/yr", 0],
+      ["Output phase 1 DS", c.DS1, r.mb.DS1, "%", 1],
+      ["Phase 2 water evaporation", c.evap2, r.mb.evap2, "t/yr", 0],
+      ["Phase 2 organics degradation", c.deg2, r.mb.deg2, "t/yr", 0],
+      ["Additional-heat evaporation", c.heatEvap, r.mb.heatEvap, "t/yr", 0],
+      ["Output phase 2", c.out2, r.mb.out2, "t/yr", 0],
+      ["Output phase 2 DS", c.DS2, r.mb.DS2, "%", 1],
+      ["Total mass reduction", c.reduction, r.mb.reduction, "%", 2],
+      ["P1 weight / tunnel", w.p1.t, r.p1.t, "t", 0],
+      ["P1 volume / tunnel", w.p1.m3, r.p1.m3, "m³", 0],
+      ["P1 filling height", w.p1.fill, r.p1.fill, "m", 2],
+      ["P2 weight / tunnel", w.p2.t, r.p2.t, "t", 0],
+      ["P2 volume / tunnel", w.p2.m3, r.p2.m3, "m³", 0],
+      ["P2 filling height", w.p2.fill, r.p2.fill, "m", 2],
+      ["Heat power, all tunnels", w.kwTotal, r.kwWtt, "kW", 0],
+      ["Heat power / tunnel", w.kwPerTunnel, r.kwPerTunnel, "kW", 0]
+    ];
+    const fmt = (x, d) => nf(d).format(x);
+    document.getElementById("valTable").innerHTML =
+      `<thead><tr><th>Item (${esc(w.label)})</th><th class="n">WTT</th><th class="n">Model</th><th class="n">Δ</th><th></th></tr></thead><tbody>` +
+      rows.map(([n, a, b, u, d]) => {
+        // WTT shows DS/ODS as whole percentages, so allow ±1 point there
+        const diff = b - a, tol = u === "%" && d === 1 ? 1 : Math.max(Math.abs(a) * 0.005, d === 0 ? 1.5 : Math.pow(10, -d) * 1.5);
+        const ok = Math.abs(diff) <= tol;
+        return `<tr><td>${n} <span style="color:var(--text-muted)">${u}</span></td><td class="n">${fmt(a, d)}</td><td class="n">${fmt(b, d)}</td><td class="n">${diff >= 0 ? "+" : "−"}${fmt(Math.abs(diff), d)}</td><td>${ok ? '<span class="pill ok">✓ match</span>' : '<span class="pill warn">! differs</span>'}</td></tr>`;
+      }).join("") + "</tbody>";
+  }
+
+  // ---------- Render: tunnel cross-sections ----------
+  function tunnelSvg(name, p, v, extra) {
+    const W = 440, H = 190, pad = 34;
+    const maxH = Math.max(p.H, p.fill) * 1.05;
+    const scaleY = (H - pad - 20) / maxH, scaleX = (W - pad - 90) / Math.max(v.L1, v.L2, p.L);
+    const x0 = pad, y0 = H - pad;
+    const tw = p.L * scaleX, th = p.H * scaleY;
+    const deadW = v.dead * scaleX, fh = p.fill * scaleY, lim = v.maxFill * scaleY;
+    const over = p.fill > v.maxFill;
+    let s = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="${name} tunnel section">`;
+    s += `<rect x="${x0}" y="${y0 - th}" width="${tw}" height="${th}" fill="var(--surface-2)" stroke="var(--border)"/>`;
+    s += `<rect x="${x0}" y="${y0 - th}" width="${deadW}" height="${th}" fill="var(--grid)"/>`;
+    s += `<rect x="${x0 + deadW + 1}" y="${y0 - fh}" width="${Math.max(0, tw - deadW - 2)}" height="${fh}" fill="${over ? "var(--s-heat)" : "var(--s-org)"}" opacity=".85" data-tip="${esc(`<b>${name} pile</b>` + tr("Weight", f0(p.t) + " t") + tr("Volume", f0(p.m3) + " m³") + tr("Filling height", f2(p.fill) + " m") + tr("Headroom", f2(p.H - p.fill) + " m"))}"/>`;
+    s += `<line x1="${x0}" x2="${x0 + tw}" y1="${y0 - lim}" y2="${y0 - lim}" stroke="var(--text-secondary)" stroke-dasharray="4 3"/>`;
+    s += `<text x="${x0 + tw + 6}" y="${y0 - lim + 4}" font-size="11" fill="var(--text-secondary)">limit ${f2(v.maxFill)} m</text>`;
+    s += `<text x="${x0 + tw + 6}" y="${y0 - fh + (Math.abs(fh - lim) < 12 ? 16 : 4)}" font-size="12" font-weight="600" fill="var(--text-primary)">fill ${f2(p.fill)} m</text>`;
+    s += `<text x="${x0 + tw + 6}" y="${y0 - th + 4}" font-size="11" fill="var(--text-muted)">roof ${f1(p.H)} m</text>`;
+    s += `<text x="${x0 + deadW / 2}" y="${y0 - th - 6}" font-size="10" text-anchor="middle" fill="var(--text-muted)">door</text>`;
+    s += `<line x1="${x0}" x2="${x0 + tw}" y1="${y0 + 8}" y2="${y0 + 8}" stroke="var(--text-muted)"/>`;
+    s += `<text x="${x0 + tw / 2}" y="${y0 + 22}" font-size="11" text-anchor="middle" fill="var(--text-secondary)">${f1(p.L)} m × ${f1(p.W)} m (effective ${f1(p.L - v.dead)} m)</text>`;
+    s += `</svg>`;
+    return `<div><h3>${name}</h3>${s}
+      <table><tbody>
+        <tr><td>Active tunnels</td><td class="n">${p.N}</td><td>Cycle</td><td class="n">${p.c} d</td></tr>
+        <tr><td>Load in</td><td class="n">${f0(p.t)} t</td><td>Volume in</td><td class="n">${f0(p.m3)} m³</td></tr>
+        <tr><td>Unload out</td><td class="n">${f0(p.out)} t</td><td>Tunnels / week</td><td class="n">${f1(p.perWeek)}</td></tr>
+        ${extra || ""}
+      </tbody></table></div>`;
+  }
+  function renderTunnels(v, r) {
+    const b1 = Math.ceil(r.p1.m3 / v.bucket), b2 = Math.ceil(r.p2.m3 / v.bucket);
+    document.getElementById("tunnels").innerHTML =
+      tunnelSvg("Phase 1", r.p1, v, `<tr><td>Buckets to fill</td><td class="n">${b1}</td><td>Fill time</td><td class="n">${f1(b1 * v.bCycle / 60)} h</td></tr>`) +
+      tunnelSvg("Phase 2", r.p2, v, `<tr><td>Buckets to fill</td><td class="n">${b2}</td><td>Heat / tunnel</td><td class="n">${f0(r.kwPerTunnel)} kW</td></tr>`);
+    bindTips(document.getElementById("tunnels"));
+  }
+
+  // ---------- Render: Gantt ----------
+  function renderGantt(v, r) {
+    const svg = document.getElementById("gantt");
+    const days = 14, start = 14; // show steady-state weeks
+    const left = 70, cell = 44, rowH = 24, top = 34;
+    const rows = [
+      ...r.state1.map((s, i) => ({ n: `P1 · T${i + 1}`, s, ph: 1 })),
+      ...r.state2.map((s, i) => ({ n: `P2 · T${i + 1}`, s, ph: 2 }))
+    ];
+    const W = left + days * cell + 4, H = top + rows.length * rowH + 8 + 8;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("width", W); svg.setAttribute("height", H);
+    let s = "";
+    for (let d = 0; d < days; d++) {
+      const dow = (start + d) % 7, x = left + d * cell;
+      const off = dow >= v.workDays;
+      if (off) s += `<rect x="${x}" y="${top - 4}" width="${cell}" height="${rows.length * rowH + 8 + 4}" fill="var(--surface-2)"/>`;
+      s += `<text x="${x + cell / 2}" y="${top - 18}" font-size="10" text-anchor="middle" fill="var(--text-muted)">Wk ${d < 7 ? 1 : 2}</text>`;
+      s += `<text x="${x + cell / 2}" y="${top - 7}" font-size="11" text-anchor="middle" fill="${off ? "var(--text-muted)" : "var(--text-secondary)"}">${DAYS[dow]}</text>`;
+    }
+    rows.forEach((row, i) => {
+      const y = top + i * rowH + (row.ph === 2 ? 8 : 0);
+      s += `<text x="0" y="${y + 16}" font-size="12" fill="var(--text-primary)">${row.n}</text>`;
+      for (let d = 0; d < days; d++) {
+        const st = row.s[start + d], x = left + d * cell;
+        const heat = row.ph === 2 && v.kWh > 0 && st >= 1 && st <= v.hDays;
+        const col = st === 0 ? "var(--s-turn)" : heat ? "var(--s-heat)" : "var(--s-comp)";
+        const p = row.ph === 1 ? r.p1 : r.p2;
+        const label = st === 0 ? "Turnaround: empty & refill" : heat ? `Heating, day ${st} of ${v.hDays}` : `Composting, day ${st} of ${p.c}`;
+        const t = st === 0
+          ? tr("Unload", f0(p.out) + " t") + tr("Load", f0(p.t) + " t / " + f0(p.m3) + " m³")
+          : heat ? tr("Heat", f0(r.kwPerTunnel) + " kW") : "";
+        s += `<rect x="${x + 1}" y="${y + 2}" width="${cell - 2}" height="${rowH - 4}" rx="3" fill="${col}" data-tip="${esc(`<b>${row.n} · ${DAYS[(start + d) % 7]} wk ${d < 7 ? 1 : 2}</b><br>${label}` + t)}"/>`;
+        if (st === 0) s += `<text x="${x + cell / 2}" y="${y + 16}" font-size="12" text-anchor="middle" fill="#0b0b0b" pointer-events="none">⇅</text>`;
+      }
+    });
+    const sepY = top + r.state1.length * rowH + 4;
+    s += `<line x1="0" x2="${W}" y1="${sepY}" y2="${sepY}" stroke="var(--border)"/>`;
+    svg.innerHTML = s;
+    bindTips(svg);
+  }
+
+  // ---------- Render: daily table ----------
+  function renderDays(v, r) {
+    const wk = r.days.slice(0, 7);
+    const tl = arr => arr.length ? arr.map(i => "T" + (i + 1)).join(", ") : "—";
+    let tot = { del: 0, fresh: 0, p1out: 0, p2out: 0, buckets: 0, loaderH: 0, tin: 0, tout: 0 };
+    const body = wk.map(x => {
+      tot.del += x.del; tot.fresh += x.fresh; tot.p1out += x.p1out; tot.p2out += x.p2out;
+      tot.buckets += x.buckets; tot.loaderH += x.loaderH; tot.tin += x.trucksIn; tot.tout += x.trucksOut;
+      const over = x.loaderH > v.shift;
+      return `<tr><td>${DAYS[x.dow]}</td>
+        <td class="n">${x.del ? f0(x.del) : "—"}</td><td class="n">${x.del ? f1(x.trucksIn) : "—"}</td>
+        <td>${tl(x.f1)}</td><td class="n">${x.fresh ? f0(x.fresh) : "—"}</td>
+        <td>${tl(x.f2)}</td><td class="n">${x.p1out ? f0(x.p1out) : "—"}</td>
+        <td class="n">${x.p2out ? f0(x.p2out) : "—"}</td><td class="n">${x.p2out ? f1(x.trucksOut) : "—"}</td>
+        <td class="n">${x.buckets || "—"}</td>
+        <td class="n">${x.loaderH ? f1(x.loaderH) : "—"} ${over ? '<span class="pill crit">✕ over</span>' : ""}</td>
+        <td class="n">${f0(x.recLevel)}</td>
+        <td class="n">${x.heating || "—"}</td></tr>`;
+    }).join("");
+    document.getElementById("dayTable").innerHTML = `
+      <thead><tr><th>Day</th><th class="n">Deliveries t</th><th class="n">Trucks in</th>
+      <th>P1 turnaround</th><th class="n">Fresh → P1 t</th>
+      <th>P2 turnaround</th><th class="n">P1 → P2 t</th>
+      <th class="n">P2 out t</th><th class="n">Trucks out</th>
+      <th class="n">Buckets</th><th class="n">Loader h</th><th class="n">Bunker end t</th><th class="n">P2 heating</th></tr></thead>
+      <tbody>${body}
+      <tr class="tot"><td>Week</td><td class="n">${f0(tot.del)}</td><td class="n">${f1(tot.tin)}</td><td></td><td class="n">${f0(tot.fresh)}</td><td></td><td class="n">${f0(tot.p1out)}</td><td class="n">${f0(tot.p2out)}</td><td class="n">${f1(tot.tout)}</td><td class="n">${tot.buckets}</td><td class="n">${f1(tot.loaderH)}</td><td></td><td></td></tr>
+      </tbody>`;
+    return wk;
+  }
+
+  // ---------- Render: bunker chart ----------
+  function renderBuffer(v, r) {
+    const svg = document.getElementById("bufChart");
+    const W = svg.clientWidth || 600, H = 220, left = 50, right = 10, top = 14, bot = 28;
+    const wk = r.days.slice(0, 7);
+    const maxV = Math.max(1, ...wk.map(x => x.recLevel));
+    const nice = (() => { const p = Math.pow(10, Math.floor(Math.log10(maxV))); return Math.ceil(maxV / p * 1.1) * p; })();
+    const sy = (H - top - bot) / nice, bw = (W - left - right) / 7;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H);
+    let s = "";
+    for (let i = 0; i <= 4; i++) {
+      const val = nice * i / 4, y = H - bot - val * sy;
+      s += `<line x1="${left}" x2="${W - right}" y1="${y}" y2="${y}" stroke="var(--grid)"/>`;
+      s += `<text x="${left - 6}" y="${y + 4}" font-size="11" text-anchor="end" fill="var(--text-muted)">${f0(val)}</text>`;
+    }
+    s += `<text x="0" y="10" font-size="11" fill="var(--text-muted)">t</text>`;
+    wk.forEach((x, i) => {
+      const bx = left + i * bw + bw * 0.2, w = bw * 0.6, h = x.recLevel * sy, y = H - bot - h;
+      const path = h > 4
+        ? `M${bx},${H - bot} V${y + 4} Q${bx},${y} ${bx + 4},${y} H${bx + w - 4} Q${bx + w},${y} ${bx + w},${y + 4} V${H - bot} Z`
+        : `M${bx},${H - bot} V${y} H${bx + w} V${H - bot} Z`;
+      s += `<path d="${path}" fill="var(--s-water)"/>`;
+      s += `<rect x="${left + i * bw}" y="${top}" width="${bw}" height="${H - top - bot}" fill="transparent" data-tip="${esc(`<b>${DAYS[x.dow]}, end of day</b>` + tr("Bunker stock", f0(x.recLevel) + " t") + tr("Volume", f0(x.recLevel / v.rho) + " m³") + tr("Delivered", f0(x.del) + " t") + tr("To phase 1", f0(x.fresh) + " t"))}"/>`;
+      s += `<text x="${bx + w / 2}" y="${H - 10}" font-size="11" text-anchor="middle" fill="var(--text-secondary)">${DAYS[x.dow]}</text>`;
+      if (x.recLevel === Math.max(...wk.map(z => z.recLevel))) s += `<text x="${bx + w / 2}" y="${y - 5}" font-size="11" text-anchor="middle" fill="var(--text-primary)" font-weight="600">${f0(x.recLevel)}</text>`;
+    });
+    s += `<line x1="${left}" x2="${W - right}" y1="${H - bot}" y2="${H - bot}" stroke="var(--text-muted)"/>`;
+    svg.innerHTML = s;
+    bindTips(svg);
+    document.getElementById("bufNote").innerHTML =
+      `Working capacity ${f0(r.recCap)} t ≈ ${f0(r.recCap / v.rho)} m³ at ${f2(v.rho)} t/m³ (${f0(r.delPerDay)} t/day on ${v.delDays} delivery days). ` +
+      `This is end-of-day stock and assumes each day's deliveries arrive before that day's filling. For a conservative bunker, add one day's deliveries: ${f0(r.recCap + r.delPerDay)} t ≈ ${f0((r.recCap + r.delPerDay) / v.rho)} m³.`;
+  }
+
+  // ---------- Render: comparison ----------
+  function renderCompare(v) {
+    const a = compute(Object.assign({}, v, { N1: 3, L1: 40, N2: 3, L2: 33 }));
+    const b = compute(Object.assign({}, v, { N1: 4, L1: 31, N2: 4, L2: 25 }));
+    const rows = [
+      ["Tunnels total (P1 + P2)", 6, 8, 0, "low"],
+      ["Tunnel length P1 / P2 (m)", "40 / 33", "31 / 25", null],
+      ["Installed tunnel floor (m²)", 3 * 40 * v.W1 + 3 * 33 * v.W2, 4 * 31 * v.W1 + 4 * 25 * v.W2, 0, "low"],
+      ["P1 batch (t)", a.p1.t, b.p1.t, 0, null],
+      ["P1 filling height (m)", a.p1.fill, b.p1.fill, 2, "low"],
+      ["P2 filling height (m)", a.p2.fill, b.p2.fill, 2, "low"],
+      ["Turnarounds / week", a.p1.perWeek + a.p2.perWeek, b.p1.perWeek + b.p2.perWeek, 0, "low"],
+      ["Peak-day loader time (h)", a.maxLoaderH, b.maxLoaderH, 1, "low"],
+      ["Reception bunker (t)", a.recCap, b.recCap, 0, "low"],
+      ["Heat power, WTT method (kW)", a.kwWtt, b.kwWtt, 0, "low"],
+      ["Heat power, staggered peak (kW)", a.peakKw, b.peakKw, 0, "low"],
+      ["Heat per heated tunnel (kW)", a.kwPerTunnel, b.kwPerTunnel, 0, null]
+    ];
+    document.getElementById("cmpTable").innerHTML =
+      `<thead><tr><th>Metric</th><th class="n">3 tunnels</th><th class="n">4 tunnels</th></tr></thead><tbody>` +
+      rows.map(([n, x, y, d, better]) => {
+        const fx = typeof x === "number" ? nf(d).format(x) : x, fy = typeof y === "number" ? nf(d).format(y) : y;
+        const bx = better === "low" && typeof x === "number" && x < y - 1e-9, by = better === "low" && typeof y === "number" && y < x - 1e-9;
+        return `<tr><td>${n}</td><td class="n ${bx ? "best" : ""}">${fx}${bx ? " ◂" : ""}</td><td class="n ${by ? "best" : ""}">${fy}${by ? " ◂" : ""}</td></tr>`;
+      }).join("") + `</tbody>`;
+  }
+
+  // ---------- CSV ----------
+  let lastWeek = [];
+  function exportCsv() {
+    const head = ["Day", "Deliveries_t", "Trucks_in", "P1_turnaround", "Fresh_to_P1_t", "Fresh_to_P1_m3", "P2_turnaround", "P1_to_P2_t", "P1_to_P2_m3", "P2_out_t", "P2_out_m3", "Trucks_out", "Buckets", "Loader_h", "Bunker_end_t", "P2_tunnels_heating"];
+    const tl = a => a.map(i => "T" + (i + 1)).join(" ");
+    const lines = [head.join(",")].concat(lastWeek.map(x => [DAYS[x.dow], x.del.toFixed(1), x.trucksIn.toFixed(2), tl(x.f1), x.fresh.toFixed(1), x.vFresh.toFixed(1), tl(x.f2), x.p1out.toFixed(1), x.vTrans.toFixed(1), x.p2out.toFixed(1), x.vOut.toFixed(1), x.trucksOut.toFixed(2), x.buckets, x.loaderH.toFixed(2), x.recLevel.toFixed(1), x.heating].join(",")));
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "tunnel-weekly-schedule.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // ---------- Main render ----------
+  function render() {
+    const v = state.v;
+    const r = compute(v);
+    syncInputs();
+    renderKpis(v, r);
+    renderAlerts(v, r);
+    renderMass(v, r);
+    renderValidation(v, r);
+    renderTunnels(v, r);
+    renderGantt(v, r);
+    lastWeek = renderDays(v, r);
+    renderBuffer(v, r);
+    renderCompare(v);
+    save();
+  }
+
+  buildInputs();
+  document.getElementById("presetSeg").addEventListener("click", e => {
+    const p = e.target.dataset.preset;
+    if (!p || p === "custom") return;
+    state = { preset: p, v: presetValues(p) };
+    render();
+  });
+  document.getElementById("btnReset").addEventListener("click", () => {
+    const p = state.preset === "t4" ? "t4" : "t3";
+    state = { preset: p, v: presetValues(p) };
+    render();
+  });
+  document.getElementById("btnCsv").addEventListener("click", exportCsv);
+  document.getElementById("btnTheme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("tunnel_theme", root.dataset.theme); } catch (e) {}
+  });
+  try { const t = localStorage.getItem("tunnel_theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(render, 120); });
+  render();
+})();
+</script>
+</body>
+</html>
