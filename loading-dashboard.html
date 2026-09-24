@@ -269,6 +269,30 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       </div>
     </section>
 
+    <section class="card" id="fireSec">
+      <h2>Fire strategy · lithium batteries</h2>
+      <p class="sub">Where Li-ion cells sit in the process, how long waste stays in the bunker, and the fire-water each pile would need. It sizes the fire prevention plan; it does not replace it.</p>
+      <div class="kpis" id="fireKpis"></div>
+      <div class="row2" style="margin-top:16px">
+        <div>
+          <h3>Li-ion cells on site by location (end of day)</h3>
+          <div class="legend">
+            <span><i style="background:var(--s-water)"></i>Reception bunker</span>
+            <span><i style="background:var(--s-org)"></i>Phase 1 tunnels</span>
+            <span><i style="background:var(--s-min)"></i>Phase 2 tunnels</span>
+          </div>
+          <svg class="chart" id="fireChart" role="img" aria-label="Lithium cells on site by location and day"></svg>
+        </div>
+        <div>
+          <h3>Pile sizing &amp; fire water</h3>
+          <div class="tblwrap"><table id="fireTable"></table></div>
+          <div id="fireNote" class="foot" style="margin-top:8px"></div>
+        </div>
+      </div>
+      <h3 style="margin-top:16px">Controls by process stage</h3>
+      <div class="tblwrap"><table id="fireCtrl"></table></div>
+    </section>
+
     <section class="card foot">
       <b>Model basis</b>
       <ul>
@@ -276,6 +300,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
         <li>Additional heat evaporates water at the latent heat set (default 2,500 kJ/kg, which reproduces WTT's −1,847 t/yr from 1,282,814 kWh/yr).</li>
         <li>Batch size = annual tonnage ÷ (operating weeks × tunnels per week). Tunnels per week = active tunnels × 7 ÷ cycle days (the WTT method).</li>
         <li>Dead length (1.5 m) is back-calculated from WTT's filling heights. It is the tunnel length not available for the pile (door and air-plenum zone).</li>
+        <li>Fire strategy: cells/t is a placeholder. Replace it with a battery audit of the incoming waste (the sample composition has 6–7% "Other / WEEE"). Composting doesn't destroy cells, so everything that isn't picked out leaves in the phase 2 output. The pile limit and fire-water rate (6.6 l/min per m³ for 3 h) follow the style of the English EA Fire Prevention Plan guidance. Coleraine is regulated by NIEA, so confirm which values apply.</li>
         <li>Inputs marked <span style="color:var(--warn)">assumed</span> are not in the WTT sheet. Replace them with site data.</li>
       </ul>
     </section>
@@ -356,6 +381,14 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["rhoOut", "Output bulk density", "t/m³", 0.35, 0.01, true],
       ["payIn", "Inbound payload", "t/truck", 20, 1, true],
       ["payOut", "Outbound payload", "t/truck", 25, 1, true]
+    ]},
+    { id: "fire", title: "Fire strategy · lithium batteries", open: false, fields: [
+      ["liPerT", "Li-ion cells in feed", "cells/t", 2, 0.1, true],
+      ["liSort", "Removed before bunker", "%", 0, 5, true],
+      ["pileMax", "Max pile volume", "m³", 450, 10, true],
+      ["waterRate", "Fire water rate", "l/min/m³", 6.6, 0.1, true],
+      ["waterDur", "Fire water duration", "min", 180, 10, true],
+      ["dwellMax", "Max bunker residence", "days", 3, 0.5, true]
     ]}
   ];
   const DEFAULTS = {};
@@ -466,7 +499,60 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     r.delPerDay = delPerDay;
     r.maxLoaderH = Math.max(...ss.map(x => x.loaderH));
     r.weekLoaderH = ss.slice(0, 7).reduce((a, x) => a + x.loaderH, 0);
+
+    // Fire strategy: lithium cells and pile/fire-water sizing
+    const li = v.liPerT * (1 - v.liSort / 100);
+    const fifo = bunkerFifo(v, t1, off1, c1);
+    const bunkerT = r.recCap + delPerDay; // conservative: one day's deliveries on top of the swing
+    const bunkerM3 = bunkerT / v.rho;
+    const piles = [
+      { n: "Reception bunker (conservative)", m3: bunkerM3 },
+      { n: "Phase 1 tunnel", m3: m31 },
+      { n: "Phase 2 tunnel", m3: m32 },
+      { n: "Hot-load quarantine (1 truck)", m3: v.payIn / v.rho }
+    ].map(x => Object.assign(x, { lpm: x.m3 * v.waterRate, water: x.m3 * v.waterRate * v.waterDur / 1000 }));
+    r.fire = {
+      li, cellsYr: v.Q * li, cellsWeek: v.Q * li / v.weeks,
+      cellsP1: t1 * li, cellsP2: (out1 / (v.weeks * b2)) * (t1 * li) / u1 || 0,
+      cellsBunkerPeak: bunkerT * li,
+      handledWeek: 3 * v.Q * li / v.weeks, // fresh fill, P1→P2 transfer, P2 unload
+      bunkerM3, bays: Math.ceil(bunkerM3 / v.pileMax), piles,
+      governing: piles.reduce((a, x) => x.m3 > a.m3 ? x : a),
+      maxAge: fifo.maxAge, avgAge: fifo.avgAge,
+      quarantineM3: v.payIn / v.rho
+    };
+    // Cells present by location, per day of the typical week
+    r.fire.byDay = ss.slice(0, 7).map(x => ({
+      dow: x.dow, bunker: x.recLevel * li,
+      p1: v.N1 * r.fire.cellsP1, p2: v.N2 * r.fire.cellsP2
+    }));
     return r;
+  }
+
+  // First-in-first-out age of waste in the reception bunker (days since delivery when it is loaded)
+  function bunkerFifo(v, t1, off1, c1) {
+    const D = 49, delPerDay = v.Q / (v.weeks * v.delDays);
+    const del = [], fill = [];
+    let cum = 0, minCum = 0;
+    for (let d = 0; d < D; d++) {
+      del[d] = (d % 7) < v.delDays ? delPerDay : 0;
+      fill[d] = off1.filter(o => mod(d - o, c1) === 0).length * t1;
+      cum += del[d] - fill[d];
+      minCum = Math.min(minCum, cum);
+    }
+    const lots = [{ t: -minCum, day: -1 }];
+    let maxAge = 0, ageT = 0, sumT = 0;
+    for (let d = 0; d < D; d++) {
+      if (del[d]) lots.push({ t: del[d], day: d });
+      let need = fill[d];
+      while (need > 1e-9 && lots.length) {
+        const lot = lots[0], take = Math.min(lot.t, need);
+        if (d >= 28 && take > 1e-6) { maxAge = Math.max(maxAge, d - lot.day); ageT += take * (d - lot.day); sumT += take; }
+        lot.t -= take; need -= take;
+        if (lot.t <= 1e-9) lots.shift();
+      }
+    }
+    return { maxAge, avgAge: sumT ? ageT / sumT : 0 };
   }
 
   // ---------- Inputs UI ----------
@@ -564,6 +650,11 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     }
     add("info", `Heat demand: the WTT method sizes ${f0(r.kwWtt)} kW (all phase 2 tunnels heating together). With this staggered schedule no more than ${r.peakHeat} tunnel(s) heat at once, so the peak is ${f0(r.peakKw)} kW.`);
     add("info", "WTT treats organics degradation as a pure dry-solids loss. In reality aerobic degradation also releases water, so real evaporation load and output moisture will be somewhat higher.");
+    const fr = r.fire;
+    if (fr.bunkerM3 > v.pileMax) add("warn", `Fire: the reception bunker holds up to ${f0(fr.bunkerM3)} m³, above the ${f0(v.pileMax)} m³ pile limit. Split it into ${fr.bays} fire-separated bays, or justify one bunker with detection plus suppression (e.g. IR cameras and deluge/monitor) in the FPP.`);
+    if (fr.maxAge > v.dwellMax) add("warn", `Fire: the oldest waste sits in the bunker ${fr.maxAge} days before loading, over the ${f1(v.dwellMax)}-day target. Weekend stock is the cause. Load on Saturday or shorten the delivery week.`);
+    else add("ok", `Fire: bunker residence is at most ${fr.maxAge} day(s), within the ${f1(v.dwellMax)}-day target.`);
+    add("info", `Fire: about ${f0(fr.cellsP1)} Li-ion cells go into each phase 1 tunnel and ~${f0(fr.cellsYr)} cells/yr pass through the site. None are removed by composting, so the output store and any screening/refining line carry the same battery load unless they are picked out.`);
     const icon = { ok: "✓", warn: "!", crit: "✕", info: "i" };
     const order = { crit: 0, warn: 1, info: 2, ok: 3 };
     A.sort((a, b) => order[a.lvl] - order[b.lvl]);
@@ -801,7 +892,11 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["Reception bunker (t)", a.recCap, b.recCap, 0, "low"],
       ["Heat power, WTT method (kW)", a.kwWtt, b.kwWtt, 0, "low"],
       ["Heat power, staggered peak (kW)", a.peakKw, b.peakKw, 0, "low"],
-      ["Heat per heated tunnel (kW)", a.kwPerTunnel, b.kwPerTunnel, 0, null]
+      ["Heat per heated tunnel (kW)", a.kwPerTunnel, b.kwPerTunnel, 0, null],
+      ["Li-ion cells per P1 tunnel", a.fire.cellsP1, b.fire.cellsP1, 0, "low"],
+      ["Li-ion cells in bunker, peak", a.fire.cellsBunkerPeak, b.fire.cellsBunkerPeak, 0, "low"],
+      ["Max bunker residence (days)", a.fire.maxAge, b.fire.maxAge, 0, "low"],
+      ["Fire water, governing pile (m³)", a.fire.governing.water, b.fire.governing.water, 0, "low"]
     ];
     document.getElementById("cmpTable").innerHTML =
       `<thead><tr><th>Metric</th><th class="n">3 tunnels</th><th class="n">4 tunnels</th></tr></thead><tbody>` +
@@ -810,6 +905,75 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
         const bx = better === "low" && typeof x === "number" && x < y - 1e-9, by = better === "low" && typeof y === "number" && y < x - 1e-9;
         return `<tr><td>${n}</td><td class="n ${bx ? "best" : ""}">${fx}${bx ? " ◂" : ""}</td><td class="n ${by ? "best" : ""}">${fy}${by ? " ◂" : ""}</td></tr>`;
       }).join("") + `</tbody>`;
+  }
+
+  // ---------- Render: fire strategy ----------
+  function renderFire(v, r) {
+    const fr = r.fire;
+    const k = (l, val, unit, s) => `<div class="kpi"><div class="l">${l}</div><div class="v">${val}<small>${unit}</small></div><div class="s">${s}</div></div>`;
+    document.getElementById("fireKpis").innerHTML = [
+      k("Li-ion cells / year", f0(fr.cellsYr), "", `${f1(fr.li)} cells/t after ${f0(v.liSort)}% pre-removal`),
+      k("Cells in bunker, peak", f0(fr.cellsBunkerPeak), "", `${f0(fr.bunkerM3)} m³ conservative stock`),
+      k("Cells per P1 tunnel", f0(fr.cellsP1), "", `${f0(fr.cellsP2)} per P2 tunnel`),
+      k("Bunker residence", fr.maxAge, fr.maxAge === 1 ? "day" : "days", `max · average ${f1(fr.avgAge)} d (FIFO)`),
+      k("Fire bays needed", fr.bays, "", `at ${f0(v.pileMax)} m³ max pile`),
+      k("Fire water, governing pile", f0(fr.governing.water), "m³", `${f0(fr.governing.lpm)} l/min · ${fr.governing.n.toLowerCase()}`)
+    ].join("");
+
+    // Stacked bars: cells by location per day
+    const svg = document.getElementById("fireChart");
+    const W = svg.clientWidth || 600, H = 230, left = 56, right = 10, top = 24, bot = 28;
+    const data = fr.byDay, keys = [["bunker", "Reception bunker", "var(--s-water)"], ["p1", "Phase 1 tunnels", "var(--s-org)"], ["p2", "Phase 2 tunnels", "var(--s-min)"]];
+    const maxV = Math.max(1, ...data.map(x => x.bunker + x.p1 + x.p2));
+    const pw = Math.pow(10, Math.floor(Math.log10(maxV))), nice = Math.ceil(maxV / pw * 1.1) * pw;
+    const sy = (H - top - bot) / nice, bw = (W - left - right) / 7;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H);
+    let s = "";
+    for (let i = 0; i <= 4; i++) {
+      const val = nice * i / 4, y = H - bot - val * sy;
+      s += `<line x1="${left}" x2="${W - right}" y1="${y}" y2="${y}" stroke="var(--grid)"/>`;
+      s += `<text x="${left - 6}" y="${y + 4}" font-size="11" text-anchor="end" fill="var(--text-muted)">${f0(val)}</text>`;
+    }
+    s += `<text x="0" y="10" font-size="11" fill="var(--text-muted)">cells</text>`;
+    data.forEach((x, i) => {
+      const bx = left + i * bw + bw * 0.2, w = bw * 0.6;
+      let y = H - bot;
+      keys.forEach(([key, , col], j) => {
+        const h = x[key] * sy;
+        if (h <= 0) return;
+        const hh = Math.max(0, h - 2);
+        s += `<rect x="${bx}" y="${y - h}" width="${w}" height="${hh}" rx="${j === 2 ? 3 : 0}" fill="${col}"/>`;
+        y -= h;
+      });
+      const tot = x.bunker + x.p1 + x.p2;
+      s += `<rect x="${left + i * bw}" y="${top}" width="${bw}" height="${H - top - bot}" fill="transparent" data-tip="${esc(`<b>${DAYS[x.dow]}, end of day</b>` + keys.map(([key, lab]) => tr(lab, f0(x[key]))).join("") + tr("Total cells", f0(tot)))}"/>`;
+      s += `<text x="${bx + w / 2}" y="${H - 10}" font-size="11" text-anchor="middle" fill="var(--text-secondary)">${DAYS[x.dow]}</text>`;
+    });
+    s += `<line x1="${left}" x2="${W - right}" y1="${H - bot}" y2="${H - bot}" stroke="var(--text-muted)"/>`;
+    svg.innerHTML = s;
+    bindTips(svg);
+
+    document.getElementById("fireTable").innerHTML =
+      `<thead><tr><th>Pile / compartment</th><th class="n">Volume m³</th><th class="n">vs limit</th><th class="n">Water l/min</th><th class="n">Water m³</th></tr></thead><tbody>` +
+      fr.piles.map(p => {
+        const over = p.m3 > v.pileMax;
+        return `<tr><td>${p.n}</td><td class="n">${f0(p.m3)}</td><td class="n">${over ? `<span class="pill warn">! ${f1(p.m3 / v.pileMax)}×</span>` : '<span class="pill ok">✓ ok</span>'}</td><td class="n">${f0(p.lpm)}</td><td class="n">${f0(p.water)}</td></tr>`;
+      }).join("") + `</tbody>`;
+    document.getElementById("fireNote").innerHTML =
+      `Water for ${f0(v.waterDur)} min at ${f1(v.waterRate)} l/min per m³. The fire-water containment (bunded yard, lagoon or tank) must hold the governing volume, ${f0(fr.governing.water)} m³, plus rainfall. ` +
+      `The tunnels are concrete compartments well over the pile limit. Their FPP case is compartmentation: doors shut, aeration fans stopped or switched to recirculation, and the irrigation spigots used as fixed suppression. That needs sign-off from the fire engineer.`;
+
+    const rows = [
+      ["Reception & tipping", `${f0(r.delPerDay)} t/day · ${f1(r.delPerDay / v.payIn)} trucks/day`, "Watch the tipping face; IR thermal cameras over the bunker linked to alarm and monitor/deluge; pick out visible batteries and vapes; hot-load quarantine bay of about " + f0(fr.quarantineM3) + " m³ (one truckload), away from the building"],
+      ["Bunker storage", `peak ${f0(fr.bunkerM3)} m³ · ${fr.maxAge} d max residence`, `Keep stock below ${f0(v.pileMax)} m³ per bay (${fr.bays} bay${fr.bays > 1 ? "s" : ""}); rotate first-in-first-out; no stock left over the weekend above the planned level; fire walls with ≥ 0.5 m freeboard over the pile`],
+      ["Loader handling", `${f0(fr.handledWeek)} cell-handlings/week`, "Crushing by the bucket is the main ignition route for Li-ion cells. Don't compact or track over the waste; fit fire suppression and a thermal camera to the loader; keep a clear exit route"],
+      ["Phase 1 tunnels", `${f0(fr.cellsP1)} cells/tunnel`, "Continuous pile-temperature probes with a rate-of-rise alarm on top of the process setpoint; interlock to stop aeration and close doors; irrigation spigots usable as a manual deluge"],
+      ["Phase 2 tunnels (heated)", `${f0(fr.cellsP2)} cells/tunnel · ${f0(r.kwPerTunnel)} kW heat`, "Additional heat raises the pile temperature. Set a high-temperature trip on the heater, separate from the process control; cut heat on any fire alarm"],
+      ["Output & dispatch", `${f0(fr.cellsYr)} cells/yr leave in the output`, "Cells survive composting. Treat the output store as a battery-bearing pile (same pile limit, detection and quarantine), or add magnet/eddy-current and picking downstream"]
+    ];
+    document.getElementById("fireCtrl").innerHTML =
+      `<thead><tr><th>Stage</th><th>Exposure</th><th style="white-space:normal">Controls to include in the FPP</th></tr></thead><tbody>` +
+      rows.map(([a, b, c]) => `<tr><td>${a}</td><td class="mono">${b}</td><td style="white-space:normal;min-width:320px">${c}</td></tr>`).join("") + `</tbody>`;
   }
 
   // ---------- CSV ----------
@@ -839,6 +1003,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     lastWeek = renderDays(v, r);
     renderBuffer(v, r);
     renderCompare(v);
+    renderFire(v, r);
     save();
   }
 
