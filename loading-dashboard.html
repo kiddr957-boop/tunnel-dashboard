@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Tunnel Loading Planner</title>
-<meta name="description" content="Loading and unloading dashboard for the Coleraine composting tunnels, driven by the WTT annual average mass balance (project 26029, rev 1)." />
+<meta name="description" content="Mon–Sat tunnel loading, turning and unloading plan for the Coleraine composting tunnels (T1–T6 / T1–T12), driven by the WTT mass balance, with a post-shredding battery detection bay." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -25,6 +25,8 @@
   --s-heat: #e34948;
   --s-turn: #eda100;
   --s-comp: #86b6ef;
+  --s-fill: #1baf7a;
+  --s-out: #e87ba4;
   --good: #0f7a3a;
   --warn: #9a6200;
   --crit: #b3261e;
@@ -50,6 +52,8 @@
     --s-heat: #e66767;
     --s-turn: #c98500;
     --s-comp: #1c5cab;
+    --s-fill: #199e70;
+    --s-out: #d55181;
     --good: #5fcf8a;
     --warn: #f0b84a;
     --crit: #ff8a80;
@@ -75,6 +79,8 @@
   --s-heat: #e66767;
   --s-turn: #c98500;
   --s-comp: #1c5cab;
+  --s-fill: #199e70;
+  --s-out: #d55181;
   --good: #5fcf8a;
   --warn: #f0b84a;
   --crit: #ff8a80;
@@ -182,106 +188,95 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   main { grid-template-columns: 1fr; }
   body { background: #fff; }
 }
+.legend i.empty { background: var(--surface-2); border: 1px dashed var(--text-muted); }
+.densrow { display: flex; align-items: center; gap: 10px; }
+.densrow input[type=range] { flex: 1; accent-color: var(--accent); }
+.densrow .num { font-size: 13px; white-space: nowrap; }
+.densticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 </style>
 </head>
 <body>
 <header class="top">
   <div>
     <h1>Tunnel loading &amp; unloading planner</h1>
-    <div class="meta">Coleraine · client Riverridge · WTT mass balance, project 26029, rev 1 (preliminary, 27/08/2026)</div>
+    <div class="meta">Coleraine · client Riverridge · WTT mass balance, project 26029, rev 1 (preliminary, 27/08/2026) · operating Mon–Sat</div>
   </div>
   <div class="toolbar">
-    <div class="seg" id="presetSeg" role="group" aria-label="Scenario">
-      <button data-preset="t3">WTT · 3 tunnels</button>
-      <button data-preset="t4">WTT · 4 tunnels</button>
-      <button data-preset="custom" disabled>Custom</button>
+    <div class="seg" id="buildSeg" role="group" aria-label="Build phase">
+      <button data-build="b1">Build 1 · 6 tunnels · 75 kt</button>
+      <button data-build="b2">Build 2 · 12 tunnels · 150 kt</button>
+      <button data-build="custom" disabled>Custom</button>
     </div>
-    <button id="btnReset" title="Reload the selected WTT scenario">Reset</button>
-    <button id="btnCsv" title="Download the weekly schedule as CSV">Export CSV</button>
+    <button id="btnReset" title="Reload the selected build phase defaults">Reset</button>
+    <button id="btnCsv" title="Download the weekly plan as CSV">Export CSV</button>
     <button id="btnTheme" title="Toggle light/dark">◐</button>
   </div>
 </header>
 
 <main>
-  <aside class="inputs" id="inputs"></aside>
+  <aside class="inputs">
+    <div class="card dens">
+      <h2>Bulk density</h2>
+      <p class="sub" style="margin-bottom:6px">Shredded feed. 350 kg/m³ is the design minimum, with an upper range of +20%.</p>
+      <div class="densrow">
+        <input type="range" id="densRange" min="350" max="420" step="5" aria-label="Bulk density">
+        <span class="num" id="densVal"></span>
+      </div>
+      <div class="densticks"><span>350</span><span>+10%</span><span>420 (+20%)</span></div>
+    </div>
+    <div id="inputs"></div>
+  </aside>
 
   <div class="content">
     <section class="kpis" id="kpis"></section>
 
     <section class="card">
       <h2>Checks &amp; warnings</h2>
-      <p class="sub">Operational limits, mass-balance closure and inconsistencies found in the WTT source sheet.</p>
+      <p class="sub">Fill-height limit, tunnel availability for turning, loader time, detection bay, and gaps between this plan and the WTT basis.</p>
       <div class="alerts" id="alerts"></div>
     </section>
 
-    <section class="row2">
-      <div class="card">
-        <h2>Mass balance by stage</h2>
-        <p class="sub">Annual tonnage split into water, organic dry solids and mineral dry solids. Each gap between bars is what the tunnels remove.</p>
-        <div class="legend">
-          <span><i style="background:var(--s-water)"></i>Water</span>
-          <span><i style="background:var(--s-org)"></i>Organic DS</span>
-          <span><i style="background:var(--s-min)"></i>Mineral DS</span>
-        </div>
-        <svg class="chart" id="massChart" role="img" aria-label="Mass balance stacked bars"></svg>
+    <section class="card">
+      <h2>Weekly tunnel plan</h2>
+      <p class="sub">Turning moves material into a <b>different</b> tunnel. On turning day the paired stage 2 tunnel is emptied to output first (①), then the stage 1 tunnel is loaded straight into it (②). The emptied stage 1 tunnel is refilled from the detection bay the next working day (③).</p>
+      <div class="legend">
+        <span><i style="background:var(--s-fill)"></i>③ Fill from detection bay</span>
+        <span><i style="background:var(--s-turn)"></i>② Turn out → stage 2</span>
+        <span><i style="background:var(--s-out)"></i>① Empty to output, then receive turn</span>
+        <span><i class="empty"></i>Empty (awaiting refill)</span>
+        <span><i style="background:var(--s-heat)"></i>Additional heat</span>
+        <span><i style="background:var(--s-comp)"></i>Composting</span>
       </div>
-      <div class="card">
-        <h2>Model vs WTT sheet</h2>
-        <p class="sub">The model recomputes the WTT figures from rates. The difference column should be ≈0 for unedited scenarios.</p>
-        <div class="tblwrap"><table id="valTable"></table></div>
-      </div>
+      <div class="gantt-wrap"><svg id="gantt" role="img" aria-label="Tunnel plan Gantt chart"></svg></div>
+    </section>
+
+    <section class="card">
+      <h2>Daily loading &amp; unloading sequence</h2>
+      <p class="sub">A typical week. Steps are listed in the order they must happen each day.</p>
+      <div class="tblwrap"><table id="dayTable"></table></div>
     </section>
 
     <section class="card">
       <h2>Tunnel loading per batch</h2>
-      <p class="sub">Cross-section of one tunnel at filling. Filling height = volume ÷ ((length − dead length) × width).</p>
+      <p class="sub">Cross-section of one tunnel at filling. Filling height = volume ÷ ((length − dead length) × width). The dashed line is the 4.5 m limit.</p>
       <div class="tunnels" id="tunnels"></div>
-    </section>
-
-    <section class="card">
-      <h2>Tunnel schedule (2 weeks, steady state)</h2>
-      <p class="sub">Each turnaround day: empty the tunnel and refill it the same day. Phase 1 output goes straight to a phase 2 tunnel emptied that day.</p>
-      <div class="legend">
-        <span><i style="background:var(--s-turn)"></i>Turnaround (empty + fill) ⇅</span>
-        <span><i style="background:var(--s-heat)"></i>Additional heat (phase 2)</span>
-        <span><i style="background:var(--s-comp)"></i>Composting</span>
-      </div>
-      <div class="gantt-wrap"><svg id="gantt" role="img" aria-label="Tunnel schedule Gantt chart"></svg></div>
-    </section>
-
-    <section class="card">
-      <h2>Daily handling plan (typical week)</h2>
-      <p class="sub">Tonnes and volumes moved per day, loader time and truck movements.</p>
-      <div class="tblwrap"><table id="dayTable"></table></div>
-    </section>
-
-    <section class="row2">
-      <div class="card">
-        <h2>Reception bunker level</h2>
-        <p class="sub">End-of-day stock of fresh waste. Deliveries arrive evenly on delivery days and phase 1 tunnels take it in batches.</p>
-        <svg class="chart" id="bufChart" role="img" aria-label="Reception bunker level by day"></svg>
-        <div id="bufNote" class="foot"></div>
-      </div>
-      <div class="card">
-        <h2>Scenario comparison</h2>
-        <p class="sub">Both WTT layouts run through the same model with your current operational and equipment inputs.</p>
-        <div class="tblwrap"><table id="cmpTable" class="cmp"></table></div>
-      </div>
+      <h3 style="margin-top:16px">Density sensitivity (stage 1 tunnel)</h3>
+      <div class="tblwrap"><table id="densTable"></table></div>
     </section>
 
     <section class="card" id="fireSec">
-      <h2>Fire strategy · lithium batteries</h2>
-      <p class="sub">Where Li-ion cells sit in the process, how long waste stays in the bunker, and the fire-water each pile would need. It sizes the fire prevention plan; it does not replace it.</p>
+      <h2>Fire strategy · post-shredding detection bay</h2>
+      <p class="sub">Shredded waste waits in an open, camera-watched bay for at least the hold time before any tunnel is filled. A cell damaged by the shredder that goes into thermal runaway should then do it where it can be seen and put out, not inside a closed tunnel.</p>
       <div class="kpis" id="fireKpis"></div>
       <div class="row2" style="margin-top:16px">
         <div>
-          <h3>Li-ion cells on site by location (end of day)</h3>
+          <h3>Detection bay stock (peak within each day)</h3>
           <div class="legend">
-            <span><i style="background:var(--s-water)"></i>Reception bunker</span>
-            <span><i style="background:var(--s-org)"></i>Phase 1 tunnels</span>
-            <span><i style="background:var(--s-min)"></i>Phase 2 tunnels</span>
+            <span><i style="background:var(--s-water)"></i>Holding (&lt; hold time)</span>
+            <span><i style="background:var(--s-min)"></i>Cleared for loading</span>
           </div>
-          <svg class="chart" id="fireChart" role="img" aria-label="Lithium cells on site by location and day"></svg>
+          <svg class="chart" id="bayChart" role="img" aria-label="Detection bay stock by day"></svg>
+          <div id="bayNote" class="foot"></div>
         </div>
         <div>
           <h3>Pile sizing &amp; fire water</h3>
@@ -293,15 +288,39 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       <div class="tblwrap"><table id="fireCtrl"></table></div>
     </section>
 
+    <section class="row2">
+      <div class="card">
+        <h2>Mass balance by stage</h2>
+        <p class="sub">Annual tonnage split into water, organic dry solids and mineral dry solids. Losses are shown above each stage.</p>
+        <div class="legend">
+          <span><i style="background:var(--s-water)"></i>Water</span>
+          <span><i style="background:var(--s-org)"></i>Organic DS</span>
+          <span><i style="background:var(--s-min)"></i>Mineral DS</span>
+        </div>
+        <svg class="chart" id="massChart" role="img" aria-label="Mass balance stacked bars"></svg>
+      </div>
+      <div class="card">
+        <h2>Model vs WTT sheet</h2>
+        <p class="sub" id="valSub"></p>
+        <div class="tblwrap"><table id="valTable"></table></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Build 1 vs Build 2</h2>
+      <p class="sub">Both build phases run with your current density, tunnel, equipment and fire inputs.</p>
+      <div class="tblwrap"><table id="cmpTable" class="cmp"></table></div>
+    </section>
+
     <section class="card foot">
       <b>Model basis</b>
       <ul>
-        <li>Water evaporation is a % of the water entering each phase. Organics degradation is a % of the organic dry solids entering. Both default to the rates implied by the WTT sheet, so the balance scales with throughput.</li>
-        <li>Additional heat evaporates water at the latent heat set (default 2,500 kJ/kg, which reproduces WTT's −1,847 t/yr from 1,282,814 kWh/yr).</li>
-        <li>Batch size = annual tonnage ÷ (operating weeks × tunnels per week). Tunnels per week = active tunnels × 7 ÷ cycle days (the WTT method).</li>
-        <li>Dead length (1.5 m) is back-calculated from WTT's filling heights. It is the tunnel length not available for the pile (door and air-plenum zone).</li>
-        <li>Fire strategy: cells/t is a placeholder. Replace it with a battery audit of the incoming waste (the sample composition has 6–7% "Other / WEEE"). Composting doesn't destroy cells, so everything that isn't picked out leaves in the phase 2 output. The pile limit and fire-water rate (6.6 l/min per m³ for 3 h) follow the style of the English EA Fire Prevention Plan guidance. Coleraine is regulated by NIEA, so confirm which values apply.</li>
-        <li>Inputs marked <span style="color:var(--warn)">assumed</span> are not in the WTT sheet. Replace them with site data.</li>
+        <li>The mass balance uses the WTT 3-tunnel sheet as rates: water evaporation as a % of water in, organics degradation as a % of organic DS in, and additional heat evaporating water at 2,500 kJ/kg. Build 2 doubles the throughput and tunnel count at the same tunnel sizes.</li>
+        <li>Every stage 1 tunnel turns once a week. Batch = annual tonnage ÷ (operating weeks × stage 1 tunnels), which is WTT's 481 t for Build 1.</li>
+        <li>Split-day pattern: waste spends <b>6 days</b> in stage 1 (refill day to turning day) and 7 days in stage 2. WTT's rates assume 7 + 7, so real stage 1 losses may be slightly lower.</li>
+        <li>Density applies to both the shredded feed and the stage 1 output going into stage 2 (WTT uses 0.35 t/m³ for both). The dead length of 1.5 m is back-calculated from WTT's filling heights.</li>
+        <li>The detection bay is simulated day by day, first in, first out. Deliveries are shredded the day they arrive. Tunnels are filled late in the shift, so the previous day's shredding has had the full 24 h hold. The bay peak is the morning stock plus that day's shredding. Filling early in the morning instead would need a 2-day hold for a true 24 h and a bigger bay.</li>
+        <li>Pile limit and fire-water rate follow the style of the English EA Fire Prevention Plan guidance. Coleraine is regulated by NIEA, so confirm the values that apply. Inputs marked <span style="color:var(--warn)">assumed</span> are not from WTT; replace them with site data.</li>
       </ul>
     </section>
   </div>
@@ -312,251 +331,224 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
 (function () {
   "use strict";
 
-  // ---------- Source data: WTT sheet, project 26029 rev 1 ----------
+  // ---------- Source data: WTT sheet, project 26029 rev 1, 3-tunnel layout ----------
   const WTT = {
-    t3: { label: "WTT · 3 tunnels",
-      p1: { N: 3, L: 40, perWeek: 3, t: 481, m3: 1374, fill: 4.46 },
-      p2: { N: 3, L: 33, perWeek: 3, t: 384, m3: 1097, fill: 4.35 },
-      kwPerTunnel: 85, kwTotal: 256 },
-    t4: { label: "WTT · 4 tunnels",
-      p1: { N: 4, L: 31, perWeek: 4, t: 361, m3: 1030, fill: 4.37 },
-      p2: { N: 4, L: 25, perWeek: 4, t: 288, m3: 823, fill: 4.38 },
-      kwPerTunnel: 85, kwTotal: 256 },
-    common: {
-      Q: 75000, DS: 63, ODS: 44, rho: 0.35, vol: 214286,
-      evap1: 13022, deg1: 2068, out1: 59910, DS1: 75, ODS1: 41,
-      evap2: 4814, deg2: 764, heatEvap: 1847, out2: 52486, DS2: 84, ODS2: 40,
-      kWh: 1282814, heatDays: 4, reduction: 30.02
-    }
+    Q: 75000, evap1: 13022, deg1: 2068, out1: 59910, DS1: 75, evap2: 4814, deg2: 764,
+    heatEvap: 1847, out2: 52486, DS2: 84, reduction: 30.02, kWh: 1282814,
+    p1: { t: 481, m3: 1374, fill: 4.46 }, p2: { t: 384, m3: 1097, fill: 4.35 }
   };
-  // Rates implied by WTT (13,022 of 27,750 t water, 2,068 of 20,790 t organic DS, etc.)
   const RATE = {
     e1: 13022 / 27750 * 100, d1: 2068 / 20790 * 100,
-    e2: 4814 / 14728 * 100,  d2: 764 / 18722 * 100
+    e2: 4814 / 14728 * 100,  d2: 764 / 18722 * 100,
+    kw: 1282814 / (52 * 3 * 4 * 24) // kW per heated tunnel
   };
+  const BUILDS = { b1: { Q: 75000, N: 3 }, b2: { Q: 150000, N: 6 } };
 
-  // ---------- Input schema ----------
+  // ---------- Input schema: [key, label, unit, default, step, assumed] ----------
   const GROUPS = [
-    { id: "feed", title: "Feed (average of samples 1–5)", open: true, fields: [
-      ["Q", "Throughput", "t/yr", 75000, 100],
+    { title: "Feed", open: true, fields: [
+      ["Q", "Throughput", "t/yr", 75000, 1000],
       ["DS", "Dry solids", "%", 63, 0.1],
-      ["ODS", "Organic DS (of DS)", "%", 44, 0.1],
-      ["rho", "Bulk density", "t/m³", 0.35, 0.01]
+      ["ODS", "Organic DS (of DS)", "%", 44, 0.1]
     ]},
-    { id: "p1", title: "Phase 1 tunnels", open: true, fields: [
-      ["N1", "Active tunnels", "#", 3, 1],
-      ["c1", "Cycle duration", "days", 7, 1],
-      ["L1", "Length", "m", 40, 0.5],
-      ["W1", "Width", "m", 8, 0.5],
-      ["H1", "Height", "m", 6, 0.1],
-      ["e1", "Water evaporation", "% water", +RATE.e1.toFixed(4), 0.1],
-      ["d1", "Organics degradation", "% ODS", +RATE.d1.toFixed(4), 0.1]
+    { title: "Tunnels", open: true, fields: [
+      ["N", "Stage 1 tunnels (= stage 2)", "#", 3, 1],
+      ["L1", "Stage 1 length", "m", 40, 0.5],
+      ["L2", "Stage 2 length", "m", 33, 0.5],
+      ["Wd", "Width", "m", 8, 0.5],
+      ["Ht", "Height", "m", 6, 0.1],
+      ["dead", "Dead length", "m", 1.5, 0.1],
+      ["maxFill", "Max filling height", "m", 4.5, 0.05]
     ]},
-    { id: "p2", title: "Phase 2 tunnels", open: true, fields: [
-      ["N2", "Active tunnels", "#", 3, 1],
-      ["c2", "Cycle duration", "days", 7, 1],
-      ["L2", "Length", "m", 33, 0.5],
-      ["W2", "Width", "m", 8, 0.5],
-      ["H2", "Height", "m", 6, 0.1],
-      ["rho2", "Bulk density in", "t/m³", 0.35, 0.01],
-      ["e2", "Water evaporation", "% water", +RATE.e2.toFixed(4), 0.1],
-      ["d2", "Organics degradation", "% ODS", +RATE.d2.toFixed(4), 0.1]
-    ]},
-    { id: "heat", title: "Phase 2 additional heat", open: false, fields: [
-      ["kWh", "Heat input", "kWh/yr", 1282814, 1000],
+    { title: "Process (WTT rates)", open: false, fields: [
+      ["e1", "Stage 1 water evaporation", "% water", +RATE.e1.toFixed(4), 0.1],
+      ["d1", "Stage 1 organics degradation", "% ODS", +RATE.d1.toFixed(4), 0.1],
+      ["e2", "Stage 2 water evaporation", "% water", +RATE.e2.toFixed(4), 0.1],
+      ["d2", "Stage 2 organics degradation", "% ODS", +RATE.d2.toFixed(4), 0.1],
+      ["kw", "Heat per heated tunnel", "kW", +RATE.kw.toFixed(2), 1],
       ["hDays", "Heating days / batch", "days", 4, 1],
       ["latent", "Latent heat", "kJ/kg", 2500, 10]
     ]},
-    { id: "ops", title: "Operations", open: false, fields: [
+    { title: "Operations & equipment", open: false, fields: [
       ["weeks", "Operating weeks", "wk/yr", 52, 1],
-      ["workDays", "Tunnel working days", "d/wk", 5, 1, true],
-      ["delDays", "Delivery days", "d/wk", 5, 1, true],
-      ["dead", "Dead length", "m", 1.5, 0.1],
-      ["maxFill", "Max filling height", "m", 4.5, 0.05, true]
-    ]},
-    { id: "equip", title: "Equipment & logistics", open: false, fields: [
       ["bucket", "Loader bucket (effective)", "m³", 6, 0.5, true],
       ["bCycle", "Loader cycle", "min", 2, 0.1, true],
-      ["shift", "Loader hours available", "h/day", 8, 0.5, true],
-      ["rhoOut", "Output bulk density", "t/m³", 0.35, 0.01, true],
+      ["shift", "Loader hours available", "h/day", 10, 0.5, true],
       ["payIn", "Inbound payload", "t/truck", 20, 1, true],
       ["payOut", "Outbound payload", "t/truck", 25, 1, true]
     ]},
-    { id: "fire", title: "Fire strategy · lithium batteries", open: false, fields: [
-      ["liPerT", "Li-ion cells in feed", "cells/t", 2, 0.1, true],
-      ["liSort", "Removed before bunker", "%", 0, 5, true],
+    { title: "Fire · detection bay", open: true, fields: [
+      ["holdH", "Hold before tunnel", "h", 24, 12],
+      ["bayH", "Bay pile height (camera view)", "m", 3, 0.25, true],
       ["pileMax", "Max pile volume", "m³", 450, 10, true],
+      ["dwellMax", "Max bay residence", "days", 3, 0.5, true],
+      ["liPerT", "Li-ion cells in feed", "cells/t", 2, 0.1, true],
       ["waterRate", "Fire water rate", "l/min/m³", 6.6, 0.1, true],
-      ["waterDur", "Fire water duration", "min", 180, 10, true],
-      ["dwellMax", "Max bunker residence", "days", 3, 0.5, true]
+      ["waterDur", "Fire water duration", "min", 180, 10, true]
     ]}
   ];
-  const DEFAULTS = {};
+  const DEFAULTS = { rho: 0.35 };
   GROUPS.forEach(g => g.fields.forEach(f => DEFAULTS[f[0]] = f[3]));
-
-  function presetValues(key) {
-    const p = WTT[key];
-    return Object.assign({}, DEFAULTS, { N1: p.p1.N, L1: p.p1.L, N2: p.p2.N, L2: p.p2.L });
-  }
+  const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_loading_v1";
-  let state = { preset: "t3", v: presetValues("t3") };
+  const STORE = "tunnel_plan_v2";
+  let state = { build: "b1", v: buildValues("b1") };
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
-    if (s && s.v) state = { preset: s.preset || "custom", v: Object.assign({}, DEFAULTS, s.v) };
+    if (s && s.v) state = { build: s.build || "custom", v: Object.assign({}, DEFAULTS, s.v) };
   } catch (e) {}
-  function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} };
 
   // ---------- Formatting ----------
-  const nf = (d) => new Intl.NumberFormat("en-GB", { minimumFractionDigits: d, maximumFractionDigits: d });
-  const F0 = nf(0), F1 = nf(1), F2 = nf(2);
-  const f0 = x => F0.format(x), f1 = x => F1.format(x), f2 = x => F2.format(x);
+  const nf = d => new Intl.NumberFormat("en-GB", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const f0 = x => nf(0).format(x), f1 = x => nf(1).format(x), f2 = x => nf(2).format(x);
   const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const WORK = 6; // Mon–Sat
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const tr = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
+  const T = i => "T" + (i + 1);
 
   // ---------- Model ----------
-  function turnaroundOffsets(N, c, workDays) {
-    const cand = [];
-    for (let d = 0; d < c; d++) if ((d % 7) < workDays) cand.push(d);
-    if (!cand.length) for (let d = 0; d < c; d++) cand.push(d);
-    const out = [];
-    for (let i = 0; i < N; i++) {
-      const idx = N === 1 ? 0 : Math.round(i * (cand.length - 1) / (N - 1));
-      out.push(cand[Math.min(idx, cand.length - 1)]);
-    }
-    return out;
-  }
-  const mod = (a, b) => ((a % b) + b) % b;
-
   function compute(v) {
-    const r = {};
+    const r = { v };
+    const N = Math.max(1, Math.round(v.N));
     // Mass balance
     const W0 = v.Q * (1 - v.DS / 100), DS0 = v.Q * v.DS / 100, O0 = DS0 * v.ODS / 100, M = DS0 - O0;
     const evap1 = W0 * v.e1 / 100, deg1 = O0 * v.d1 / 100;
     const W1 = W0 - evap1, O1 = O0 - deg1, out1 = v.Q - evap1 - deg1;
     const evap2 = W1 * v.e2 / 100, deg2 = O1 * v.d2 / 100;
-    const kWhPerT = v.latent / 3.6; // kJ/kg → kWh/t
-    const heatEvapRaw = v.kWh / kWhPerT;
+    const batchesYr = v.weeks * N;
+    const kWh = v.kw * v.hDays * 24 * batchesYr;
+    const heatEvapRaw = kWh / (v.latent / 3.6);
     const heatEvap = Math.min(heatEvapRaw, Math.max(0, W1 - evap2));
     const W2 = W1 - evap2 - heatEvap, O2 = O1 - deg2, out2 = out1 - evap2 - deg2 - heatEvap;
-    r.mb = { W0, O0, M, evap1, deg1, W1, O1, out1, evap2, deg2, heatEvap, heatEvapRaw, W2, O2, out2,
+    r.mb = { W0, O0, M, evap1, deg1, W1, O1, out1, evap2, deg2, heatEvap, heatEvapRaw, W2, O2, out2, kWh,
       DS1: (O1 + M) / out1 * 100, ODS1: O1 / (O1 + M) * 100,
       DS2: (O2 + M) / out2 * 100, ODS2: O2 / (O2 + M) * 100,
       reduction: (1 - out2 / v.Q) * 100 };
 
-    // Tunnels
-    const c1 = Math.max(1, Math.round(v.c1)), c2 = Math.max(1, Math.round(v.c2));
-    const b1 = v.N1 * 7 / v.c1, b2 = v.N2 * 7 / v.c2;
-    const t1 = v.Q / (v.weeks * b1), m31 = t1 / v.rho;
-    const t2 = out1 / (v.weeks * b2), m32 = t2 / v.rho2;
-    const u1 = out1 / (v.weeks * b1); // t out of each phase 1 tunnel
-    const u2 = out2 / (v.weeks * b2);
-    const eff1 = Math.max(0.1, v.L1 - v.dead) * v.W1, eff2 = Math.max(0.1, v.L2 - v.dead) * v.W2;
-    r.p1 = { N: v.N1, c: c1, perWeek: b1, t: t1, m3: m31, fill: m31 / eff1, out: u1, H: v.H1, L: v.L1, W: v.W1 };
-    r.p2 = { N: v.N2, c: c2, perWeek: b2, t: t2, m3: m32, fill: m32 / eff2, out: u2, H: v.H2, L: v.L2, W: v.W2 };
-    r.batches2yr = v.weeks * b2;
-    r.kwPerTunnel = v.kWh / (r.batches2yr * v.hDays * 24);
-    r.kwWtt = r.kwPerTunnel * v.N2;
+    // Per-batch loads
+    const eff1 = Math.max(0.1, v.L1 - v.dead) * v.Wd, eff2 = Math.max(0.1, v.L2 - v.dead) * v.Wd;
+    const t1 = v.Q / batchesYr, t2 = out1 / batchesYr, tOut = out2 / batchesYr;
+    const tunnel = (t, eff, L) => {
+      const m3 = t / v.rho, cap = v.maxFill * eff * v.rho;
+      return { t, m3, fill: m3 / eff, cap, spareYr: (cap - t) * batchesYr, L };
+    };
+    r.N = N; r.batchesYr = batchesYr;
+    r.s1 = tunnel(t1, eff1, v.L1);
+    r.s2 = tunnel(t2, eff2, v.L2);
+    r.tOut = tOut;
+    r.eff1 = eff1; r.eff2 = eff2;
 
-    // Schedule over 28 days (steady state, repeating backwards)
-    const H = 28;
-    const off1 = turnaroundOffsets(v.N1, c1, v.workDays), off2 = turnaroundOffsets(v.N2, c2, v.workDays);
-    const state1 = off1.map(o => Array.from({ length: H }, (_, d) => mod(d - o, c1)));
-    const state2 = off2.map(o => Array.from({ length: H }, (_, d) => mod(d - o, c2)));
-    r.off1 = off1; r.off2 = off2; r.state1 = state1; r.state2 = state2;
+    // Weekly plan: turn Mon/Wed/Fri, refill next working day (Tue/Thu/Sat)
+    const TURN = [0, 2, 4];
+    r.plan = Array.from({ length: N }, (_, i) => {
+      const turn = TURN[Math.min(2, Math.floor(i * 3 / N))];
+      return { s1: i, s2: N + i, turn, refill: turn + 1 };
+    });
+    // Residence: stage 1 from refill to next turn; stage 2 from turn to next turn
+    r.res1 = Math.min(...r.plan.map(p => (p.turn + 7 - p.refill) % 7 || 7));
+    r.res2 = 7;
 
-    const days = [];
-    const delPerDay = v.Q / (v.weeks * v.delDays);
-    let rec = 0, trans = 0, peakHeat = 0, weekendTurn = 0;
-    for (let d = 0; d < H; d++) {
-      const dow = d % 7;
-      const f1 = state1.map((s, i) => s[d] === 0 ? i : -1).filter(i => i >= 0);
-      const f2 = state2.map((s, i) => s[d] === 0 ? i : -1).filter(i => i >= 0);
-      const heating = v.kWh > 0 ? state2.filter(s => s[d] >= 1 && s[d] <= v.hDays).length : 0;
-      peakHeat = Math.max(peakHeat, heating);
-      if (dow >= v.workDays && (f1.length || f2.length)) weekendTurn++;
-      const del = dow < v.delDays ? delPerDay : 0;
-      const fresh = f1.length * t1, p1out = f1.length * u1, p2in = f2.length * t2, p2out = f2.length * u2;
-      rec += del - fresh; trans += p1out - p2in;
-      const vFresh = fresh / v.rho, vTrans = p1out / v.rho2, vOut = p2out / v.rhoOut;
-      const buckets = Math.ceil(vFresh / v.bucket) + Math.ceil(vTrans / v.bucket) + Math.ceil(vOut / v.bucket);
-      days.push({ d, dow, del, f1, f2, fresh, p1out, p2in, p2out, vFresh, vTrans, vOut, buckets,
-        loaderH: buckets * v.bCycle / 60, trucksIn: del / v.payIn, trucksOut: p2out / v.payOut,
-        heating, rec, trans });
+    // Tunnel state per day for 14 days
+    r.states = [];
+    for (let i = 0; i < 2 * N; i++) {
+      const p = r.plan[i % N], stage = i < N ? 1 : 2;
+      r.states.push(Array.from({ length: 14 }, (_, d) => {
+        const dow = d % 7;
+        if (stage === 1) {
+          if (dow === p.turn) return "turn";
+          if (dow === p.refill) return "fill";
+          return "comp";
+        }
+        if (dow === p.turn) return "out";
+        const since = (dow - p.turn + 7) % 7;
+        if (v.kw > 0 && since >= 1 && since <= v.hDays) return "heat";
+        return "comp";
+      }));
     }
-    // Buffer sizing on the last 2 weeks (steady state)
-    const ss = days.slice(14);
-    const recMin = Math.min(...ss.map(x => x.rec)), recMax = Math.max(...ss.map(x => x.rec));
-    const trMin = Math.min(...ss.map(x => x.trans)), trMax = Math.max(...ss.map(x => x.trans));
-    ss.forEach(x => { x.recLevel = x.rec - recMin; x.transLevel = x.trans - trMin; });
-    r.days = ss;
-    r.recCap = recMax - recMin;
-    r.transCap = trMax - trMin;
-    r.peakHeat = peakHeat;
-    r.peakKw = peakHeat * r.kwPerTunnel;
-    r.weekendTurn = weekendTurn;
-    r.delPerDay = delPerDay;
-    r.maxLoaderH = Math.max(...ss.map(x => x.loaderH));
-    r.weekLoaderH = ss.slice(0, 7).reduce((a, x) => a + x.loaderH, 0);
 
-    // Fire strategy: lithium cells and pile/fire-water sizing
-    const li = v.liPerT * (1 - v.liSort / 100);
-    const fifo = bunkerFifo(v, t1, off1, c1);
-    const bunkerT = r.recCap + delPerDay; // conservative: one day's deliveries on top of the swing
-    const bunkerM3 = bunkerT / v.rho;
+    // Daily handling
+    const shredDay = v.Q / (v.weeks * WORK);
+    r.days = DAYS.map((name, dow) => {
+      const turns = r.plan.filter(p => p.turn === dow), fills = r.plan.filter(p => p.refill === dow);
+      const vFill = fills.length * t1 / v.rho, vTurn = turns.length * t2 / v.rho, vOut = turns.length * tOut / v.rho;
+      const buckets = fills.length * Math.ceil(t1 / v.rho / v.bucket) + turns.length * (Math.ceil(t2 / v.rho / v.bucket) + Math.ceil(tOut / v.rho / v.bucket));
+      const heating = r.states.slice(N).filter(s => s[7 + dow] === "heat").length;
+      return { dow, name, shred: dow < WORK ? shredDay : 0, turns, fills,
+        fillT: fills.length * t1, turnT: turns.length * t2, outT: turns.length * tOut,
+        vFill, vTurn, vOut, buckets, loaderH: buckets * v.bCycle / 60,
+        trucksIn: dow < WORK ? shredDay / v.payIn : 0, trucksOut: turns.length * tOut / v.payOut, heating };
+    });
+    r.shredDay = shredDay;
+    r.maxLoaderH = Math.max(...r.days.map(x => x.loaderH));
+    r.weekLoaderH = r.days.reduce((a, x) => a + x.loaderH, 0);
+    r.peakHeat = Math.max(...r.days.map(x => x.heating));
+    r.peakKw = r.peakHeat * v.kw;
+
+    // Detection bay
+    r.bay = baySim(v, r, shredDay, t1);
+    const li = v.liPerT;
+    const bayM3 = r.bay.peak / v.rho;
     const piles = [
-      { n: "Reception bunker (conservative)", m3: bunkerM3 },
-      { n: "Phase 1 tunnel", m3: m31 },
-      { n: "Phase 2 tunnel", m3: m32 },
+      { n: "Detection bay (peak)", m3: bayM3 },
+      { n: "Stage 1 tunnel", m3: r.s1.m3 },
+      { n: "Stage 2 tunnel", m3: r.s2.m3 },
       { n: "Hot-load quarantine (1 truck)", m3: v.payIn / v.rho }
     ].map(x => Object.assign(x, { lpm: x.m3 * v.waterRate, water: x.m3 * v.waterRate * v.waterDur / 1000 }));
     r.fire = {
-      li, cellsYr: v.Q * li, cellsWeek: v.Q * li / v.weeks,
-      cellsP1: t1 * li, cellsP2: (out1 / (v.weeks * b2)) * (t1 * li) / u1 || 0,
-      cellsBunkerPeak: bunkerT * li,
-      handledWeek: 3 * v.Q * li / v.weeks, // fresh fill, P1→P2 transfer, P2 unload
-      bunkerM3, bays: Math.ceil(bunkerM3 / v.pileMax), piles,
-      governing: piles.reduce((a, x) => x.m3 > a.m3 ? x : a),
-      maxAge: fifo.maxAge, avgAge: fifo.avgAge,
-      quarantineM3: v.payIn / v.rho
+      li, cellsYr: v.Q * li, cellsDay: shredDay * li, cellsBay: r.bay.peak * li, cellsS1: t1 * li,
+      bayM3, bayArea: bayM3 / v.bayH, bays: Math.ceil(bayM3 / v.pileMax),
+      piles, governing: piles.reduce((a, x) => x.m3 > a.m3 ? x : a)
     };
-    // Cells present by location, per day of the typical week
-    r.fire.byDay = ss.slice(0, 7).map(x => ({
-      dow: x.dow, bunker: x.recLevel * li,
-      p1: v.N1 * r.fire.cellsP1, p2: v.N2 * r.fire.cellsP2
-    }));
     return r;
   }
 
-  // First-in-first-out age of waste in the reception bunker (days since delivery when it is loaded)
-  function bunkerFifo(v, t1, off1, c1) {
-    const D = 49, delPerDay = v.Q / (v.weeks * v.delDays);
-    const del = [], fill = [];
-    let cum = 0, minCum = 0;
-    for (let d = 0; d < D; d++) {
-      del[d] = (d % 7) < v.delDays ? delPerDay : 0;
-      fill[d] = off1.filter(o => mod(d - o, c1) === 0).length * t1;
-      cum += del[d] - fill[d];
-      minCum = Math.min(minCum, cum);
-    }
-    const lots = [{ t: -minCum, day: -1 }];
-    let maxAge = 0, ageT = 0, sumT = 0;
-    for (let d = 0; d < D; d++) {
-      if (del[d]) lots.push({ t: del[d], day: d });
-      let need = fill[d];
-      while (need > 1e-9 && lots.length) {
-        const lot = lots[0], take = Math.min(lot.t, need);
-        if (d >= 28 && take > 1e-6) { maxAge = Math.max(maxAge, d - lot.day); ageT += take * (d - lot.day); sumT += take; }
-        lot.t -= take; need -= take;
-        if (lot.t <= 1e-9) lots.shift();
+  // Detection bay: FIFO, material becomes eligible holdDays after the day it was shredded.
+  // Binary-search the smallest standing stock that never starves a refill, then report steady-state peak and ages.
+  function baySim(v, r, shredDay, t1) {
+    const hold = Math.max(0, Math.ceil(v.holdH / 24 - 1e-9));
+    const D = 56;
+    const demand = d => r.plan.filter(p => p.refill === d % 7).length * t1;
+    const shred = d => (d % 7) < WORK ? shredDay : 0;
+    function run(S0, record) {
+      const lots = [{ t: S0, day: -99 }];
+      const out = { ok: true, peak: 0, maxAge: 0, minAge: Infinity, byDay: [] };
+      for (let d = 0; d < D; d++) {
+        const start = lots.reduce((a, l) => a + l.t, 0);
+        let need = demand(d);
+        const eligible = lots.filter(l => d - l.day >= hold).reduce((a, l) => a + l.t, 0);
+        if (eligible + 1e-6 < need) { out.ok = false; if (!record) return out; }
+        // Cleared vs holding at the start of the day (before loading)
+        const cleared0 = eligible, holding0 = start - eligible;
+        while (need > 1e-9 && lots.length && d - lots[0].day >= hold) {
+          const lot = lots[0], take = Math.min(lot.t, need);
+          if (record && d >= 35 && lot.day > -99) { out.maxAge = Math.max(out.maxAge, d - lot.day); out.minAge = Math.min(out.minAge, d - lot.day); }
+          lot.t -= take; need -= take;
+          if (lot.t <= 1e-9) lots.shift();
+        }
+        const s = shred(d);
+        if (s) lots.push({ t: s, day: d });
+        // Peak within the day: morning stock plus the whole day's shredding (conservative)
+        const peak = start + s;
+        if (record && d >= 35) {
+          out.peak = Math.max(out.peak, peak);
+          if (d < 42) out.byDay.push({ dow: d % 7, holding: holding0 + s, cleared: cleared0, peak, loaded: demand(d), shred: s });
+        }
       }
+      return out;
     }
-    return { maxAge, avgAge: sumT ? ageT / sumT : 0 };
+    let lo = 0, hi = 30 * Math.max(t1, 1);
+    for (let k = 0; k < 40; k++) { const mid = (lo + hi) / 2; if (run(mid, false).ok) hi = mid; else lo = mid; }
+    const res = run(hi, true);
+    res.hold = hold;
+    return res;
   }
 
   // ---------- Inputs UI ----------
   const inputsEl = document.getElementById("inputs");
+  const densRange = document.getElementById("densRange");
   function buildInputs() {
     inputsEl.innerHTML = GROUPS.map(g => `
       <details class="grp" ${g.open ? "open" : ""}>
@@ -573,26 +565,29 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       const x = parseFloat(e.target.value);
       if (!isFinite(x)) return;
       state.v[k] = x;
-      state.preset = matchPreset(state.v);
+      state.build = matchBuild(state.v);
       render();
     });
+    densRange.addEventListener("input", () => { state.v.rho = +densRange.value / 1000; render(); });
   }
-  function matchPreset(v) {
-    for (const key of ["t3", "t4"]) {
-      const p = presetValues(key);
-      if (Object.keys(p).every(k => Math.abs(p[k] - v[k]) < 1e-9)) return key;
+  function matchBuild(v) {
+    for (const b of ["b1", "b2"]) {
+      const p = buildValues(b);
+      if (Object.keys(p).every(k => k === "rho" || Math.abs(p[k] - v[k]) < 1e-9)) return b;
     }
     return "custom";
   }
   function syncInputs() {
-    const ref = state.preset === "custom" ? null : presetValues(state.preset);
+    const base = buildValues(state.build === "b2" ? "b2" : "b1");
     inputsEl.querySelectorAll("input[data-k]").forEach(inp => {
       const k = inp.dataset.k;
       if (document.activeElement !== inp) inp.value = state.v[k];
-      const base = presetValues(state.preset === "t4" ? "t4" : "t3");
-      inp.classList.toggle("changed", !ref && Math.abs(base[k] - state.v[k]) > 1e-9);
+      inp.classList.toggle("changed", Math.abs(base[k] - state.v[k]) > 1e-9);
     });
-    document.querySelectorAll("#presetSeg button").forEach(b => b.classList.toggle("active", b.dataset.preset === state.preset));
+    densRange.value = Math.round(state.v.rho * 1000);
+    const pct = (state.v.rho / 0.35 - 1) * 100;
+    document.getElementById("densVal").textContent = `${f0(state.v.rho * 1000)} kg/m³ (${pct >= 0 ? "+" : ""}${f0(pct)}%)`;
+    document.querySelectorAll("#buildSeg button").forEach(b => b.classList.toggle("active", b.dataset.build === state.build));
   }
 
   // ---------- Tooltip ----------
@@ -605,326 +600,179 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     if (y + h > innerHeight - 8) y = e.clientY - h - 14;
     tip.style.left = x + "px"; tip.style.top = y + "px";
   }
-  function hideTip() { tip.style.display = "none"; }
-  function bindTips(svg) {
-    svg.querySelectorAll("[data-tip]").forEach(el => {
+  function bindTips(root) {
+    root.querySelectorAll("[data-tip]").forEach(el => {
       el.addEventListener("mousemove", e => showTip(e, el.getAttribute("data-tip")));
-      el.addEventListener("mouseleave", hideTip);
+      el.addEventListener("mouseleave", () => { tip.style.display = "none"; });
     });
   }
-  const tr = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
+  const kpi = (l, val, unit, s) => `<div class="kpi"><div class="l">${l}</div><div class="v">${val}<small>${unit}</small></div><div class="s">${s}</div></div>`;
 
-  // ---------- Render: KPIs ----------
+  // ---------- KPIs ----------
   function renderKpis(v, r) {
-    const k = (l, val, unit, s) => `<div class="kpi"><div class="l">${l}</div><div class="v">${val}<small>${unit}</small></div><div class="s">${s}</div></div>`;
     document.getElementById("kpis").innerHTML = [
-      k("Fresh waste per P1 tunnel", f0(r.p1.t), "t", `${f0(r.p1.m3)} m³ · fill ${f2(r.p1.fill)} m`),
-      k("Transfer per P2 tunnel", f0(r.p2.t), "t", `${f0(r.p2.m3)} m³ · fill ${f2(r.p2.fill)} m`),
-      k("Turnarounds / week", f1(r.p1.perWeek + r.p2.perWeek), "", `P1 ${f1(r.p1.perWeek)} · P2 ${f1(r.p2.perWeek)}`),
-      k("Output (phase 2)", f0(r.mb.out2), "t/yr", `DS ${f0(r.mb.DS2)}% · reduction ${f2(r.mb.reduction)}%`),
-      k("Reception bunker", f0(r.recCap), "t", `${f0(r.recCap / v.rho)} m³ steady-state swing`),
-      k("Loader time, peak day", f1(r.maxLoaderH), "h", `${Math.ceil(r.maxLoaderH / v.shift)} loader(s) at ${f0(v.shift)} h · ${f0(r.weekLoaderH)} h/week`)
+      kpi("Stage 1 load per tunnel", f0(r.s1.t), "t", `${f0(r.s1.m3)} m³ · fill ${f2(r.s1.fill)} m`),
+      kpi("Capacity at " + f1(v.maxFill) + " m", f0(r.s1.cap), "t", `${r.s1.spareYr >= 0 ? "spare" : "short"} ${f0(Math.abs(r.s1.spareYr))} t/yr`),
+      kpi("Turn into stage 2", f0(r.s2.t), "t", `${f0(r.s2.m3)} m³ · fill ${f2(r.s2.fill)} m`),
+      kpi("Tunnel moves / week", r.N * 3, "", `${r.N} fills · ${r.N} turns · ${r.N} empties`),
+      kpi("Loader time, peak day", f1(r.maxLoaderH), "h", `${Math.ceil(r.maxLoaderH / v.shift)} loader(s) at ${f0(v.shift)} h`),
+      kpi("Detection bay", f0(r.fire.bayM3), "m³", `${f0(r.bay.peak)} t · ${f0(r.fire.bayArea)} m² at ${f1(v.bayH)} m`)
     ].join("");
   }
 
-  // ---------- Render: alerts ----------
+  // ---------- Alerts ----------
   function renderAlerts(v, r) {
-    const A = [];
-    const add = (lvl, msg) => A.push({ lvl, msg });
-    [["Phase 1", r.p1], ["Phase 2", r.p2]].forEach(([n, p]) => {
-      if (p.fill > p.H) add("crit", `${n}: filling height ${f2(p.fill)} m is higher than the tunnel (${f1(p.H)} m).`);
-      else if (p.fill > v.maxFill) add("warn", `${n}: filling height ${f2(p.fill)} m is above the ${f2(v.maxFill)} m limit. Add a tunnel, lengthen the tunnels or shorten the cycle.`);
-      else add("ok", `${n}: filling height ${f2(p.fill)} m, within the ${f2(v.maxFill)} m limit (${f2(v.maxFill - p.fill)} m spare).`);
-      if (Math.abs(p.perWeek - Math.round(p.perWeek)) > 1e-6) add("warn", `${n}: ${f2(p.perWeek)} tunnels/week is not a whole number, so the weekly pattern repeats unevenly. Choose a cycle so that tunnels × 7 ÷ cycle is an integer.`);
+    const A = [], add = (lvl, msg) => A.push({ lvl, msg });
+    [["Stage 1", r.s1], ["Stage 2", r.s2]].forEach(([n, p]) => {
+      if (p.fill > v.maxFill + 1e-9) add("crit", `${n}: the WTT tonnage needs ${f2(p.fill)} m, above the ${f2(v.maxFill)} m limit. Short by ${f0(-p.spareYr)} t/yr at ${f0(v.rho * 1000)} kg/m³.`);
+      else add("ok", `${n}: ${f0(p.t)} t fills to ${f2(p.fill)} m, within ${f2(v.maxFill)} m. Filling to the limit would take ${f0(p.cap)} t (${f0(p.spareYr)} t/yr spare).`);
     });
-    if (r.weekendTurn) add("warn", `Some turnarounds land outside the ${v.workDays} working days/week (see the schedule). Adjust the cycle length or the working days.`);
-    if (r.transCap > 1) add("warn", `Phase 1 and phase 2 turnarounds don't line up. About ${f0(r.transCap)} t (${f0(r.transCap / v.rho2)} m³) of intermediate storage is needed between phases.`);
-    else add("ok", "Every phase 1 unload feeds a phase 2 tunnel on the same day. No intermediate storage is needed.");
-    if (r.maxLoaderH > v.shift) add("crit", `Peak-day loader time ${f1(r.maxLoaderH)} h exceeds the ${f1(v.shift)} h available. That needs ${Math.ceil(r.maxLoaderH / v.shift)} loaders on turnaround days, a bigger bucket, or turnarounds spread over more days. (Bucket size and cycle time are assumed. Check them first.)`);
-    if (r.mb.heatEvapRaw > r.mb.heatEvap + 0.5) add("crit", "The additional heat input would evaporate more water than phase 2 still contains. The heat evaporation has been capped.");
-    const clos = v.Q - r.mb.evap1 - r.mb.deg1 - r.mb.evap2 - r.mb.deg2 - r.mb.heatEvap - r.mb.out2;
-    if (Math.abs(clos) < 0.5) add("ok", `Mass balance closes: ${f0(v.Q)} t in = ${f0(r.mb.out2)} t out + ${f0(v.Q - r.mb.out2)} t losses.`);
-    // Source-sheet issues
-    if (state.preset === "t4" || v.N2 !== 3) {
-      add("info", `WTT 4-tunnel sheet shows 85 kW/tunnel, but 256 kW ÷ 4 tunnels = 64 kW. It looks like a stale value from the 3-tunnel case. At the current inputs: ${f1(r.kwPerTunnel)} kW per heated tunnel, ${f0(r.kwWtt)} kW if all ${v.N2} tunnels heat at once (WTT method).`);
-    }
-    add("info", `Heat demand: the WTT method sizes ${f0(r.kwWtt)} kW (all phase 2 tunnels heating together). With this staggered schedule no more than ${r.peakHeat} tunnel(s) heat at once, so the peak is ${f0(r.peakKw)} kW.`);
-    add("info", "WTT treats organics degradation as a pure dry-solids loss. In reality aerobic degradation also releases water, so real evaporation load and output moisture will be somewhat higher.");
-    const fr = r.fire;
-    if (fr.bunkerM3 > v.pileMax) add("warn", `Fire: the reception bunker holds up to ${f0(fr.bunkerM3)} m³, above the ${f0(v.pileMax)} m³ pile limit. Split it into ${fr.bays} fire-separated bays, or justify one bunker with detection plus suppression (e.g. IR cameras and deluge/monitor) in the FPP.`);
-    if (fr.maxAge > v.dwellMax) add("warn", `Fire: the oldest waste sits in the bunker ${fr.maxAge} days before loading, over the ${f1(v.dwellMax)}-day target. Weekend stock is the cause. Load on Saturday or shorten the delivery week.`);
-    else add("ok", `Fire: bunker residence is at most ${fr.maxAge} day(s), within the ${f1(v.dwellMax)}-day target.`);
-    add("info", `Fire: about ${f0(fr.cellsP1)} Li-ion cells go into each phase 1 tunnel and ~${f0(fr.cellsYr)} cells/yr pass through the site. None are removed by composting, so the output store and any screening/refining line carry the same battery load unless they are picked out.`);
-    const icon = { ok: "✓", warn: "!", crit: "✕", info: "i" };
-    const order = { crit: 0, warn: 1, info: 2, ok: 3 };
+    if (v.rho > 0.35 + 1e-9) add("info", `At ${f0(v.rho * 1000)} kg/m³ the tunnels can't be filled to ${f2(v.maxFill)} m from the ${f0(v.Q)} t/yr supply: the pile sits at ${f2(r.s1.fill)} m. Filling to ${f2(v.maxFill)} m every time would only work with more feed or fewer turns.`);
+    add("ok", `Second tunnel available for turning: each turn goes into a stage 2 tunnel that was emptied to output earlier the same day (${r.plan.map(p => `${T(p.s1)}→${T(p.s2)} ${DAYS[p.turn]}`).join(", ")}).`);
+    if (r.res1 < 7) add("warn", `Stage 1 residence is ${r.res1} days (refill to turn) against WTT's 7. WTT's evaporation and degradation for stage 1 may be slightly optimistic. Confirm with WTT that 6 + 7 days still meets the stage 2 output spec.`);
+    if (r.maxLoaderH > v.shift) add("crit", `Peak-day loader time ${f1(r.maxLoaderH)} h exceeds the ${f1(v.shift)} h available. That needs ${Math.ceil(r.maxLoaderH / v.shift)} loaders. (Bucket size and cycle time are assumed.)`);
+    else add("ok", `Loader time peaks at ${f1(r.maxLoaderH)} h/day. The split plan spreads the work evenly: fill days ${f1(r.days[1].loaderH)} h, turn days ${f1(r.days[0].loaderH)} h.`);
+    if (r.fire.bayM3 > v.pileMax) add("warn", `Detection bay peaks at ${f0(r.fire.bayM3)} m³, above the ${f0(v.pileMax)} m³ pile limit. Split into ${r.fire.bays} fire-separated bays (${f0(r.fire.bayArea)} m² floor in total at ${f1(v.bayH)} m pile height).`);
+    if (r.bay.maxAge > v.dwellMax) add("warn", `Oldest shredded waste sits ${r.bay.maxAge} days in the bay (the Saturday shred held until the next fill). That's over the ${f1(v.dwellMax)}-day target.`);
+    add("ok", `Every tunnel fill has had at least ${r.bay.minAge} day(s) of IR watch in the detection bay (hold required: ${f0(v.holdH)} h).`);
+    if (r.mb.heatEvapRaw > r.mb.heatEvap + 0.5) add("crit", "The additional heat would evaporate more water than stage 2 still contains. The heat evaporation has been capped.");
+    add("info", `Heat: WTT's method sizes ${f0(v.kw * r.N)} kW (all stage 2 tunnels heating). With this plan at most ${r.peakHeat} of ${r.N} heat at once, so the peak is ${f0(r.peakKw)} kW.`);
+    const icon = { ok: "✓", warn: "!", crit: "✕", info: "i" }, order = { crit: 0, warn: 1, info: 2, ok: 3 };
     A.sort((a, b) => order[a.lvl] - order[b.lvl]);
     document.getElementById("alerts").innerHTML = A.map(a => `<div class="alert ${a.lvl}"><span class="ic">${icon[a.lvl]}</span><span>${a.msg}</span></div>`).join("");
   }
 
-  // ---------- Render: mass balance chart ----------
-  function renderMass(v, r) {
-    const svg = document.getElementById("massChart");
-    const W = svg.clientWidth || 600, rowH = 34, gap = 30, left = 110, right = 70, top = 8;
-    const stages = [
-      { n: "Input", w: r.mb.W0, o: r.mb.O0, m: r.mb.M, sub: `DS ${f0(v.DS)}% · ODS ${f0(v.ODS)}%` },
-      { n: "Out phase 1", w: r.mb.W1, o: r.mb.O1, m: r.mb.M, sub: `DS ${f0(r.mb.DS1)}% · ODS ${f0(r.mb.ODS1)}%`,
-        loss: [["Evaporation", r.mb.evap1], ["Degradation", r.mb.deg1]] },
-      { n: "Out phase 2", w: r.mb.W2, o: r.mb.O2, m: r.mb.M, sub: `DS ${f0(r.mb.DS2)}% · ODS ${f0(r.mb.ODS2)}%`,
-        loss: [["Evaporation", r.mb.evap2], ["Degradation", r.mb.deg2], ["Heat evaporation", r.mb.heatEvap]] }
-    ];
-    const H = top + stages.length * (rowH + gap);
-    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H);
-    const sx = (W - left - right) / v.Q;
-    let s = "";
-    stages.forEach((st, i) => {
-      const y = top + i * (rowH + gap);
-      const tot = st.w + st.o + st.m;
-      s += `<text x="0" y="${y + 14}" font-size="12" font-weight="600" fill="var(--text-primary)">${st.n}</text>`;
-      s += `<text x="0" y="${y + 29}" font-size="11" fill="var(--text-muted)">${st.sub}</text>`;
-      let x = left;
-      [["Water", st.w, "var(--s-water)"], ["Organic DS", st.o, "var(--s-org)"], ["Mineral DS", st.m, "var(--s-min)"]].forEach(([lab, val, col], j) => {
-        const w = Math.max(0, val * sx - 2);
-        const rx = j === 2 ? 4 : 0;
-        s += `<rect x="${x}" y="${y}" width="${w}" height="${rowH}" fill="${col}" rx="${rx}" data-tip="${esc(`<b>${st.n} · ${lab}</b>` + tr("Tonnes/yr", f0(val)) + tr("Share", f1(val / tot * 100) + "%"))}"/>`;
-        x += val * sx;
-      });
-      s += `<text x="${left + tot * sx + 6}" y="${y + rowH / 2 + 4}" font-size="12" class="num" fill="var(--text-primary)" font-family="IBM Plex Mono">${f0(tot)} t</text>`;
-      if (st.loss) {
-        const lossTot = st.loss.reduce((a, l) => a + l[1], 0);
-        s += `<text x="${left}" y="${y - 8}" font-size="11" fill="var(--text-muted)">− ${st.loss.map(l => `${l[0].toLowerCase()} ${f0(l[1])} t`).join(" · ")} (${f0(lossTot)} t)</text>`;
-      }
-    });
-    svg.innerHTML = s;
-    bindTips(svg);
-  }
-
-  // ---------- Render: validation table ----------
-  function renderValidation(v, r) {
-    const key = state.preset === "t4" ? "t4" : "t3";
-    const w = WTT[key], c = WTT.common;
-    const rows = [
-      ["Phase 1 water evaporation", c.evap1, r.mb.evap1, "t/yr", 0],
-      ["Phase 1 organics degradation", c.deg1, r.mb.deg1, "t/yr", 0],
-      ["Output phase 1", c.out1, r.mb.out1, "t/yr", 0],
-      ["Output phase 1 DS", c.DS1, r.mb.DS1, "%", 1],
-      ["Phase 2 water evaporation", c.evap2, r.mb.evap2, "t/yr", 0],
-      ["Phase 2 organics degradation", c.deg2, r.mb.deg2, "t/yr", 0],
-      ["Additional-heat evaporation", c.heatEvap, r.mb.heatEvap, "t/yr", 0],
-      ["Output phase 2", c.out2, r.mb.out2, "t/yr", 0],
-      ["Output phase 2 DS", c.DS2, r.mb.DS2, "%", 1],
-      ["Total mass reduction", c.reduction, r.mb.reduction, "%", 2],
-      ["P1 weight / tunnel", w.p1.t, r.p1.t, "t", 0],
-      ["P1 volume / tunnel", w.p1.m3, r.p1.m3, "m³", 0],
-      ["P1 filling height", w.p1.fill, r.p1.fill, "m", 2],
-      ["P2 weight / tunnel", w.p2.t, r.p2.t, "t", 0],
-      ["P2 volume / tunnel", w.p2.m3, r.p2.m3, "m³", 0],
-      ["P2 filling height", w.p2.fill, r.p2.fill, "m", 2],
-      ["Heat power, all tunnels", w.kwTotal, r.kwWtt, "kW", 0],
-      ["Heat power / tunnel", w.kwPerTunnel, r.kwPerTunnel, "kW", 0]
-    ];
-    const fmt = (x, d) => nf(d).format(x);
-    document.getElementById("valTable").innerHTML =
-      `<thead><tr><th>Item (${esc(w.label)})</th><th class="n">WTT</th><th class="n">Model</th><th class="n">Δ</th><th></th></tr></thead><tbody>` +
-      rows.map(([n, a, b, u, d]) => {
-        // WTT shows DS/ODS as whole percentages, so allow ±1 point there
-        const diff = b - a, tol = u === "%" && d === 1 ? 1 : Math.max(Math.abs(a) * 0.005, d === 0 ? 1.5 : Math.pow(10, -d) * 1.5);
-        const ok = Math.abs(diff) <= tol;
-        return `<tr><td>${n} <span style="color:var(--text-muted)">${u}</span></td><td class="n">${fmt(a, d)}</td><td class="n">${fmt(b, d)}</td><td class="n">${diff >= 0 ? "+" : "−"}${fmt(Math.abs(diff), d)}</td><td>${ok ? '<span class="pill ok">✓ match</span>' : '<span class="pill warn">! differs</span>'}</td></tr>`;
-      }).join("") + "</tbody>";
-  }
-
-  // ---------- Render: tunnel cross-sections ----------
-  function tunnelSvg(name, p, v, extra) {
-    const W = 440, H = 190, pad = 34;
-    const maxH = Math.max(p.H, p.fill) * 1.05;
-    const scaleY = (H - pad - 20) / maxH, scaleX = (W - pad - 90) / Math.max(v.L1, v.L2, p.L);
-    const x0 = pad, y0 = H - pad;
-    const tw = p.L * scaleX, th = p.H * scaleY;
-    const deadW = v.dead * scaleX, fh = p.fill * scaleY, lim = v.maxFill * scaleY;
-    const over = p.fill > v.maxFill;
-    let s = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="${name} tunnel section">`;
-    s += `<rect x="${x0}" y="${y0 - th}" width="${tw}" height="${th}" fill="var(--surface-2)" stroke="var(--border)"/>`;
-    s += `<rect x="${x0}" y="${y0 - th}" width="${deadW}" height="${th}" fill="var(--grid)"/>`;
-    s += `<rect x="${x0 + deadW + 1}" y="${y0 - fh}" width="${Math.max(0, tw - deadW - 2)}" height="${fh}" fill="${over ? "var(--s-heat)" : "var(--s-org)"}" opacity=".85" data-tip="${esc(`<b>${name} pile</b>` + tr("Weight", f0(p.t) + " t") + tr("Volume", f0(p.m3) + " m³") + tr("Filling height", f2(p.fill) + " m") + tr("Headroom", f2(p.H - p.fill) + " m"))}"/>`;
-    s += `<line x1="${x0}" x2="${x0 + tw}" y1="${y0 - lim}" y2="${y0 - lim}" stroke="var(--text-secondary)" stroke-dasharray="4 3"/>`;
-    s += `<text x="${x0 + tw + 6}" y="${y0 - lim + 4}" font-size="11" fill="var(--text-secondary)">limit ${f2(v.maxFill)} m</text>`;
-    s += `<text x="${x0 + tw + 6}" y="${y0 - fh + (Math.abs(fh - lim) < 12 ? 16 : 4)}" font-size="12" font-weight="600" fill="var(--text-primary)">fill ${f2(p.fill)} m</text>`;
-    s += `<text x="${x0 + tw + 6}" y="${y0 - th + 4}" font-size="11" fill="var(--text-muted)">roof ${f1(p.H)} m</text>`;
-    s += `<text x="${x0 + deadW / 2}" y="${y0 - th - 6}" font-size="10" text-anchor="middle" fill="var(--text-muted)">door</text>`;
-    s += `<line x1="${x0}" x2="${x0 + tw}" y1="${y0 + 8}" y2="${y0 + 8}" stroke="var(--text-muted)"/>`;
-    s += `<text x="${x0 + tw / 2}" y="${y0 + 22}" font-size="11" text-anchor="middle" fill="var(--text-secondary)">${f1(p.L)} m × ${f1(p.W)} m (effective ${f1(p.L - v.dead)} m)</text>`;
-    s += `</svg>`;
-    return `<div><h3>${name}</h3>${s}
-      <table><tbody>
-        <tr><td>Active tunnels</td><td class="n">${p.N}</td><td>Cycle</td><td class="n">${p.c} d</td></tr>
-        <tr><td>Load in</td><td class="n">${f0(p.t)} t</td><td>Volume in</td><td class="n">${f0(p.m3)} m³</td></tr>
-        <tr><td>Unload out</td><td class="n">${f0(p.out)} t</td><td>Tunnels / week</td><td class="n">${f1(p.perWeek)}</td></tr>
-        ${extra || ""}
-      </tbody></table></div>`;
-  }
-  function renderTunnels(v, r) {
-    const b1 = Math.ceil(r.p1.m3 / v.bucket), b2 = Math.ceil(r.p2.m3 / v.bucket);
-    document.getElementById("tunnels").innerHTML =
-      tunnelSvg("Phase 1", r.p1, v, `<tr><td>Buckets to fill</td><td class="n">${b1}</td><td>Fill time</td><td class="n">${f1(b1 * v.bCycle / 60)} h</td></tr>`) +
-      tunnelSvg("Phase 2", r.p2, v, `<tr><td>Buckets to fill</td><td class="n">${b2}</td><td>Heat / tunnel</td><td class="n">${f0(r.kwPerTunnel)} kW</td></tr>`);
-    bindTips(document.getElementById("tunnels"));
-  }
-
-  // ---------- Render: Gantt ----------
+  // ---------- Gantt ----------
   function renderGantt(v, r) {
     const svg = document.getElementById("gantt");
-    const days = 14, start = 14; // show steady-state weeks
-    const left = 70, cell = 44, rowH = 24, top = 34;
-    const rows = [
-      ...r.state1.map((s, i) => ({ n: `P1 · T${i + 1}`, s, ph: 1 })),
-      ...r.state2.map((s, i) => ({ n: `P2 · T${i + 1}`, s, ph: 2 }))
-    ];
-    const W = left + days * cell + 4, H = top + rows.length * rowH + 8 + 8;
+    const left = 92, cell = 46, rowH = 24, top = 34, gap = 10, N = r.N;
+    const W = left + 14 * cell + 4, H = top + 2 * N * rowH + gap + 6;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("width", W); svg.setAttribute("height", H);
+    const COL = { fill: "var(--s-fill)", turn: "var(--s-turn)", out: "var(--s-out)", heat: "var(--s-heat)", comp: "var(--s-comp)" };
     let s = "";
-    for (let d = 0; d < days; d++) {
-      const dow = (start + d) % 7, x = left + d * cell;
-      const off = dow >= v.workDays;
-      if (off) s += `<rect x="${x}" y="${top - 4}" width="${cell}" height="${rows.length * rowH + 8 + 4}" fill="var(--surface-2)"/>`;
+    for (let d = 0; d < 14; d++) {
+      const dow = d % 7, x = left + d * cell;
+      if (dow === 6) s += `<rect x="${x}" y="${top - 4}" width="${cell}" height="${H - top}" fill="var(--surface-2)"/>`;
       s += `<text x="${x + cell / 2}" y="${top - 18}" font-size="10" text-anchor="middle" fill="var(--text-muted)">Wk ${d < 7 ? 1 : 2}</text>`;
-      s += `<text x="${x + cell / 2}" y="${top - 7}" font-size="11" text-anchor="middle" fill="${off ? "var(--text-muted)" : "var(--text-secondary)"}">${DAYS[dow]}</text>`;
+      s += `<text x="${x + cell / 2}" y="${top - 7}" font-size="11" text-anchor="middle" fill="${dow === 6 ? "var(--text-muted)" : "var(--text-secondary)"}">${DAYS[dow]}</text>`;
     }
-    rows.forEach((row, i) => {
-      const y = top + i * rowH + (row.ph === 2 ? 8 : 0);
-      s += `<text x="0" y="${y + 16}" font-size="12" fill="var(--text-primary)">${row.n}</text>`;
-      for (let d = 0; d < days; d++) {
-        const st = row.s[start + d], x = left + d * cell;
-        const heat = row.ph === 2 && v.kWh > 0 && st >= 1 && st <= v.hDays;
-        const col = st === 0 ? "var(--s-turn)" : heat ? "var(--s-heat)" : "var(--s-comp)";
-        const p = row.ph === 1 ? r.p1 : r.p2;
-        const label = st === 0 ? "Turnaround: empty & refill" : heat ? `Heating, day ${st} of ${v.hDays}` : `Composting, day ${st} of ${p.c}`;
-        const t = st === 0
-          ? tr("Unload", f0(p.out) + " t") + tr("Load", f0(p.t) + " t / " + f0(p.m3) + " m³")
-          : heat ? tr("Heat", f0(r.kwPerTunnel) + " kW") : "";
-        s += `<rect x="${x + 1}" y="${y + 2}" width="${cell - 2}" height="${rowH - 4}" rx="3" fill="${col}" data-tip="${esc(`<b>${row.n} · ${DAYS[(start + d) % 7]} wk ${d < 7 ? 1 : 2}</b><br>${label}` + t)}"/>`;
-        if (st === 0) s += `<text x="${x + cell / 2}" y="${y + 16}" font-size="12" text-anchor="middle" fill="#0b0b0b" pointer-events="none">⇅</text>`;
+    r.states.forEach((row, i) => {
+      const stage = i < N ? 1 : 2, p = r.plan[i % N];
+      const y = top + i * rowH + (stage === 2 ? gap : 0);
+      s += `<text x="0" y="${y + 16}" font-size="12" fill="var(--text-primary)"><tspan font-weight="600">${T(i)}</tspan><tspan fill="var(--text-muted)"> · stage ${stage}</tspan></text>`;
+      for (let d = 0; d < 14; d++) {
+        const st = row[d], x = left + d * cell, dow = d % 7;
+        // Stage 1 tunnels are empty overnight between turn and refill
+        const emptyAfterTurn = stage === 1 && st === "comp" && ((dow - p.turn + 7) % 7) < ((p.refill - p.turn + 7) % 7);
+        let label, glyph = "", tipx = "";
+        if (st === "fill") { label = "③ Fill from detection bay"; glyph = "③"; tipx = tr("Load", `${f0(r.s1.t)} t · ${f0(r.s1.m3)} m³`) + tr("Fill height", f2(r.s1.fill) + " m"); }
+        else if (st === "turn") { label = `② Turn out → ${T(p.s2)}`; glyph = "②"; tipx = tr("Moved", `${f0(r.s2.t)} t · ${f0(r.s2.m3)} m³`); }
+        else if (st === "out") { label = `① Empty to output, then receive ${T(p.s1)}`; glyph = "①"; tipx = tr("Out", `${f0(r.tOut)} t`) + tr("In", `${f0(r.s2.t)} t`); }
+        else if (st === "heat") { const k = (dow - p.turn + 7) % 7; label = `Heating, day ${k} of ${v.hDays}`; tipx = tr("Heat", f0(v.kw) + " kW"); }
+        else label = "Composting";
+        const fill = COL[st];
+        s += `<rect x="${x + 1}" y="${y + 2}" width="${cell - 2}" height="${rowH - 4}" rx="3" fill="${fill}" data-tip="${esc(`<b>${T(i)} · ${DAYS[dow]} wk ${d < 7 ? 1 : 2}</b><br>${label}` + tipx)}"/>`;
+        if (glyph) s += `<text x="${x + cell / 2}" y="${y + 16}" font-size="12" text-anchor="middle" fill="#0b0b0b" pointer-events="none">${glyph}</text>`;
+        if (stage === 1 && st === "turn") {
+          // the tunnel is empty from the turn until the refill: show the overnight gap as a hatch on the right half
+          s += `<rect x="${x + cell / 2}" y="${y + 2}" width="${cell / 2 - 1}" height="${rowH - 4}" fill="url(#hatch)" pointer-events="none"/>`;
+        }
       }
     });
-    const sepY = top + r.state1.length * rowH + 4;
-    s += `<line x1="0" x2="${W}" y1="${sepY}" y2="${sepY}" stroke="var(--border)"/>`;
+    s = `<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--surface-2)"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--text-muted)" stroke-width="2"/></pattern></defs>` + s;
+    s += `<line x1="0" x2="${W}" y1="${top + N * rowH + gap / 2}" y2="${top + N * rowH + gap / 2}" stroke="var(--border)"/>`;
     svg.innerHTML = s;
     bindTips(svg);
   }
 
-  // ---------- Render: daily table ----------
+  // ---------- Daily sequence ----------
   function renderDays(v, r) {
-    const wk = r.days.slice(0, 7);
-    const tl = arr => arr.length ? arr.map(i => "T" + (i + 1)).join(", ") : "—";
-    let tot = { del: 0, fresh: 0, p1out: 0, p2out: 0, buckets: 0, loaderH: 0, tin: 0, tout: 0 };
-    const body = wk.map(x => {
-      tot.del += x.del; tot.fresh += x.fresh; tot.p1out += x.p1out; tot.p2out += x.p2out;
-      tot.buckets += x.buckets; tot.loaderH += x.loaderH; tot.tin += x.trucksIn; tot.tout += x.trucksOut;
+    const bayByDow = {}; r.bay.byDay.forEach(x => bayByDow[x.dow] = x);
+    const rows = r.days.map(x => {
+      const steps = [];
+      x.turns.forEach(p => steps.push(`① Empty ${T(p.s2)} → output (${f0(r.tOut)} t)`, `② Turn ${T(p.s1)} → ${T(p.s2)} (${f0(r.s2.t)} t)`));
+      x.fills.forEach(p => steps.push(`③ Fill ${T(p.s1)} from bay (${f0(r.s1.t)} t)`));
+      if (x.dow === 6) steps.push("No loading. Tunnels composting, bay under camera watch");
+      const b = bayByDow[x.dow];
       const over = x.loaderH > v.shift;
-      return `<tr><td>${DAYS[x.dow]}</td>
-        <td class="n">${x.del ? f0(x.del) : "—"}</td><td class="n">${x.del ? f1(x.trucksIn) : "—"}</td>
-        <td>${tl(x.f1)}</td><td class="n">${x.fresh ? f0(x.fresh) : "—"}</td>
-        <td>${tl(x.f2)}</td><td class="n">${x.p1out ? f0(x.p1out) : "—"}</td>
-        <td class="n">${x.p2out ? f0(x.p2out) : "—"}</td><td class="n">${x.p2out ? f1(x.trucksOut) : "—"}</td>
+      return `<tr><td>${x.name}</td>
+        <td class="n">${x.shred ? f0(x.shred) : "—"}</td><td class="n">${x.shred ? f1(x.trucksIn) : "—"}</td>
+        <td style="white-space:normal;min-width:260px">${steps.join("<br>")}</td>
+        <td>${x.turns.length ? x.turns.map(p => `<span class="pill ok">✓ ${T(p.s2)} empty</span>`).join(" ") : "—"}</td>
+        <td class="n">${x.fillT ? f0(x.fillT) : "—"}</td><td class="n">${x.turnT ? f0(x.turnT) : "—"}</td><td class="n">${x.outT ? f0(x.outT) : "—"}</td>
+        <td class="n">${x.outT ? f1(x.trucksOut) : "—"}</td>
         <td class="n">${x.buckets || "—"}</td>
-        <td class="n">${x.loaderH ? f1(x.loaderH) : "—"} ${over ? '<span class="pill crit">✕ over</span>' : ""}</td>
-        <td class="n">${f0(x.recLevel)}</td>
-        <td class="n">${x.heating || "—"}</td></tr>`;
+        <td class="n">${x.loaderH ? f1(x.loaderH) : "—"}${over ? ' <span class="pill crit">✕</span>' : ""}</td>
+        <td class="n">${b ? f0(b.peak) : "—"}</td></tr>`;
     }).join("");
+    const t = r.days.reduce((a, x) => ({ shred: a.shred + x.shred, tin: a.tin + x.trucksIn, fill: a.fill + x.fillT, turn: a.turn + x.turnT, out: a.out + x.outT, tout: a.tout + x.trucksOut, b: a.b + x.buckets, h: a.h + x.loaderH }), { shred: 0, tin: 0, fill: 0, turn: 0, out: 0, tout: 0, b: 0, h: 0 });
     document.getElementById("dayTable").innerHTML = `
-      <thead><tr><th>Day</th><th class="n">Deliveries t</th><th class="n">Trucks in</th>
-      <th>P1 turnaround</th><th class="n">Fresh → P1 t</th>
-      <th>P2 turnaround</th><th class="n">P1 → P2 t</th>
-      <th class="n">P2 out t</th><th class="n">Trucks out</th>
-      <th class="n">Buckets</th><th class="n">Loader h</th><th class="n">Bunker end t</th><th class="n">P2 heating</th></tr></thead>
-      <tbody>${body}
-      <tr class="tot"><td>Week</td><td class="n">${f0(tot.del)}</td><td class="n">${f1(tot.tin)}</td><td></td><td class="n">${f0(tot.fresh)}</td><td></td><td class="n">${f0(tot.p1out)}</td><td class="n">${f0(tot.p2out)}</td><td class="n">${f1(tot.tout)}</td><td class="n">${tot.buckets}</td><td class="n">${f1(tot.loaderH)}</td><td></td><td></td></tr>
+      <thead><tr><th>Day</th><th class="n">Shredded t</th><th class="n">Trucks in</th><th>Sequence</th><th>2nd tunnel check</th>
+      <th class="n">Bay → S1 t</th><th class="n">S1 → S2 t</th><th class="n">S2 out t</th><th class="n">Trucks out</th>
+      <th class="n">Buckets</th><th class="n">Loader h</th><th class="n">Bay peak t</th></tr></thead>
+      <tbody>${rows}
+      <tr class="tot"><td>Week</td><td class="n">${f0(t.shred)}</td><td class="n">${f1(t.tin)}</td><td></td><td></td><td class="n">${f0(t.fill)}</td><td class="n">${f0(t.turn)}</td><td class="n">${f0(t.out)}</td><td class="n">${f1(t.tout)}</td><td class="n">${t.b}</td><td class="n">${f1(t.h)}</td><td></td></tr>
       </tbody>`;
-    return wk;
   }
 
-  // ---------- Render: bunker chart ----------
-  function renderBuffer(v, r) {
-    const svg = document.getElementById("bufChart");
-    const W = svg.clientWidth || 600, H = 220, left = 50, right = 10, top = 14, bot = 28;
-    const wk = r.days.slice(0, 7);
-    const maxV = Math.max(1, ...wk.map(x => x.recLevel));
-    const nice = (() => { const p = Math.pow(10, Math.floor(Math.log10(maxV))); return Math.ceil(maxV / p * 1.1) * p; })();
-    const sy = (H - top - bot) / nice, bw = (W - left - right) / 7;
-    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H);
-    let s = "";
-    for (let i = 0; i <= 4; i++) {
-      const val = nice * i / 4, y = H - bot - val * sy;
-      s += `<line x1="${left}" x2="${W - right}" y1="${y}" y2="${y}" stroke="var(--grid)"/>`;
-      s += `<text x="${left - 6}" y="${y + 4}" font-size="11" text-anchor="end" fill="var(--text-muted)">${f0(val)}</text>`;
-    }
-    s += `<text x="0" y="10" font-size="11" fill="var(--text-muted)">t</text>`;
-    wk.forEach((x, i) => {
-      const bx = left + i * bw + bw * 0.2, w = bw * 0.6, h = x.recLevel * sy, y = H - bot - h;
-      const path = h > 4
-        ? `M${bx},${H - bot} V${y + 4} Q${bx},${y} ${bx + 4},${y} H${bx + w - 4} Q${bx + w},${y} ${bx + w},${y + 4} V${H - bot} Z`
-        : `M${bx},${H - bot} V${y} H${bx + w} V${H - bot} Z`;
-      s += `<path d="${path}" fill="var(--s-water)"/>`;
-      s += `<rect x="${left + i * bw}" y="${top}" width="${bw}" height="${H - top - bot}" fill="transparent" data-tip="${esc(`<b>${DAYS[x.dow]}, end of day</b>` + tr("Bunker stock", f0(x.recLevel) + " t") + tr("Volume", f0(x.recLevel / v.rho) + " m³") + tr("Delivered", f0(x.del) + " t") + tr("To phase 1", f0(x.fresh) + " t"))}"/>`;
-      s += `<text x="${bx + w / 2}" y="${H - 10}" font-size="11" text-anchor="middle" fill="var(--text-secondary)">${DAYS[x.dow]}</text>`;
-      if (x.recLevel === Math.max(...wk.map(z => z.recLevel))) s += `<text x="${bx + w / 2}" y="${y - 5}" font-size="11" text-anchor="middle" fill="var(--text-primary)" font-weight="600">${f0(x.recLevel)}</text>`;
-    });
-    s += `<line x1="${left}" x2="${W - right}" y1="${H - bot}" y2="${H - bot}" stroke="var(--text-muted)"/>`;
-    svg.innerHTML = s;
-    bindTips(svg);
-    document.getElementById("bufNote").innerHTML =
-      `Working capacity ${f0(r.recCap)} t ≈ ${f0(r.recCap / v.rho)} m³ at ${f2(v.rho)} t/m³ (${f0(r.delPerDay)} t/day on ${v.delDays} delivery days). ` +
-      `This is end-of-day stock and assumes each day's deliveries arrive before that day's filling. For a conservative bunker, add one day's deliveries: ${f0(r.recCap + r.delPerDay)} t ≈ ${f0((r.recCap + r.delPerDay) / v.rho)} m³.`;
+  // ---------- Tunnel cross-sections + density table ----------
+  function tunnelSvg(name, p, v, maxL, extra) {
+    const W = 440, H = 190, pad = 34;
+    const maxH = Math.max(v.Ht, p.fill) * 1.05;
+    const sy = (H - pad - 20) / maxH, sx = (W - pad - 96) / maxL;
+    const x0 = pad, y0 = H - pad, tw = p.L * sx, th = v.Ht * sy, dw = v.dead * sx, fh = p.fill * sy, lim = v.maxFill * sy;
+    const over = p.fill > v.maxFill + 1e-9;
+    let s = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="${name} tunnel section">`;
+    s += `<rect x="${x0}" y="${y0 - th}" width="${tw}" height="${th}" fill="var(--surface-2)" stroke="var(--border)"/>`;
+    s += `<rect x="${x0}" y="${y0 - th}" width="${dw}" height="${th}" fill="var(--grid)"/>`;
+    s += `<rect x="${x0 + dw + 1}" y="${y0 - fh}" width="${Math.max(0, tw - dw - 2)}" height="${fh}" fill="${over ? "var(--s-heat)" : "var(--s-org)"}" opacity=".85" data-tip="${esc(`<b>${name} pile</b>` + tr("Weight", f0(p.t) + " t") + tr("Volume", f0(p.m3) + " m³") + tr("Filling height", f2(p.fill) + " m") + tr("Capacity at limit", f0(p.cap) + " t"))}"/>`;
+    s += `<line x1="${x0}" x2="${x0 + tw}" y1="${y0 - lim}" y2="${y0 - lim}" stroke="var(--text-secondary)" stroke-dasharray="4 3"/>`;
+    const close = Math.abs(fh - lim) < 14;
+    s += `<text x="${x0 + tw + 6}" y="${y0 - lim + (close ? -4 : 4)}" font-size="11" fill="var(--text-secondary)">limit ${f2(v.maxFill)} m</text>`;
+    s += `<text x="${x0 + tw + 6}" y="${y0 - fh + (close ? 12 : 4)}" font-size="12" font-weight="600" fill="var(--text-primary)">fill ${f2(p.fill)} m</text>`;
+    s += `<text x="${x0 + tw + 6}" y="${y0 - th + 4}" font-size="11" fill="var(--text-muted)">roof ${f1(v.Ht)} m</text>`;
+    s += `<text x="${x0 + dw / 2}" y="${y0 - th - 6}" font-size="10" text-anchor="middle" fill="var(--text-muted)">door</text>`;
+    s += `<line x1="${x0}" x2="${x0 + tw}" y1="${y0 + 8}" y2="${y0 + 8}" stroke="var(--text-muted)"/>`;
+    s += `<text x="${x0 + tw / 2}" y="${y0 + 22}" font-size="11" text-anchor="middle" fill="var(--text-secondary)">${f1(p.L)} m × ${f1(v.Wd)} m (effective ${f1(p.L - v.dead)} m)</text></svg>`;
+    return `<div><h3>${name}</h3>${s}<div class="tblwrap"><table><tbody>
+      <tr><td>Load</td><td class="n">${f0(p.t)} t</td><td>Volume</td><td class="n">${f0(p.m3)} m³</td></tr>
+      <tr><td>Capacity at ${f1(v.maxFill)} m</td><td class="n">${f0(p.cap)} t</td><td>Headroom</td><td class="n">${f2(v.Ht - p.fill)} m</td></tr>
+      ${extra}</tbody></table></div></div>`;
+  }
+  function renderTunnels(v, r) {
+    const maxL = Math.max(v.L1, v.L2);
+    const b1 = Math.ceil(r.s1.m3 / v.bucket), b2 = Math.ceil(r.s2.m3 / v.bucket);
+    const s1n = `Stage 1 · ${r.plan.map(p => T(p.s1)).join(", ")}`, s2n = `Stage 2 · ${r.plan.map(p => T(p.s2)).join(", ")}`;
+    document.getElementById("tunnels").innerHTML =
+      tunnelSvg(s1n, r.s1, v, maxL, `<tr><td>Residence</td><td class="n">${r.res1} d</td><td>Buckets to fill</td><td class="n">${b1}</td></tr>`) +
+      tunnelSvg(s2n, r.s2, v, maxL, `<tr><td>Residence</td><td class="n">${r.res2} d</td><td>Out per tunnel</td><td class="n">${f0(r.tOut)} t</td></tr>`);
+    bindTips(document.getElementById("tunnels"));
+    const rows = [350, 385, 420].map(k => {
+      const x = compute(Object.assign({}, v, { rho: k / 1000 }));
+      const cur = Math.abs(k / 1000 - v.rho) < 1e-9;
+      return `<tr${cur ? ' style="font-weight:600"' : ""}><td>${k} kg/m³ ${k === 350 ? "(design min)" : "(+" + f0((k / 350 - 1) * 100) + "%)"}</td>
+        <td class="n">${f0(x.s1.m3)}</td><td class="n">${f2(x.s1.fill)}</td><td class="n">${f0(x.s1.cap)}</td><td class="n">${f0(x.s1.spareYr)}</td>
+        <td class="n">${f0(x.fire.bayM3)}</td><td class="n">${f0(x.fire.bayArea)}</td></tr>`;
+    }).join("");
+    document.getElementById("densTable").innerHTML = `<thead><tr><th>Density</th><th class="n">m³ / tunnel</th><th class="n">Fill height m</th><th class="n">t at ${f1(v.maxFill)} m</th><th class="n">Spare t/yr</th><th class="n">Bay m³</th><th class="n">Bay floor m²</th></tr></thead><tbody>${rows}</tbody>`;
   }
 
-  // ---------- Render: comparison ----------
-  function renderCompare(v) {
-    const a = compute(Object.assign({}, v, { N1: 3, L1: 40, N2: 3, L2: 33 }));
-    const b = compute(Object.assign({}, v, { N1: 4, L1: 31, N2: 4, L2: 25 }));
-    const rows = [
-      ["Tunnels total (P1 + P2)", 6, 8, 0, "low"],
-      ["Tunnel length P1 / P2 (m)", "40 / 33", "31 / 25", null],
-      ["Installed tunnel floor (m²)", 3 * 40 * v.W1 + 3 * 33 * v.W2, 4 * 31 * v.W1 + 4 * 25 * v.W2, 0, "low"],
-      ["P1 batch (t)", a.p1.t, b.p1.t, 0, null],
-      ["P1 filling height (m)", a.p1.fill, b.p1.fill, 2, "low"],
-      ["P2 filling height (m)", a.p2.fill, b.p2.fill, 2, "low"],
-      ["Turnarounds / week", a.p1.perWeek + a.p2.perWeek, b.p1.perWeek + b.p2.perWeek, 0, "low"],
-      ["Peak-day loader time (h)", a.maxLoaderH, b.maxLoaderH, 1, "low"],
-      ["Reception bunker (t)", a.recCap, b.recCap, 0, "low"],
-      ["Heat power, WTT method (kW)", a.kwWtt, b.kwWtt, 0, "low"],
-      ["Heat power, staggered peak (kW)", a.peakKw, b.peakKw, 0, "low"],
-      ["Heat per heated tunnel (kW)", a.kwPerTunnel, b.kwPerTunnel, 0, null],
-      ["Li-ion cells per P1 tunnel", a.fire.cellsP1, b.fire.cellsP1, 0, "low"],
-      ["Li-ion cells in bunker, peak", a.fire.cellsBunkerPeak, b.fire.cellsBunkerPeak, 0, "low"],
-      ["Max bunker residence (days)", a.fire.maxAge, b.fire.maxAge, 0, "low"],
-      ["Fire water, governing pile (m³)", a.fire.governing.water, b.fire.governing.water, 0, "low"]
-    ];
-    document.getElementById("cmpTable").innerHTML =
-      `<thead><tr><th>Metric</th><th class="n">3 tunnels</th><th class="n">4 tunnels</th></tr></thead><tbody>` +
-      rows.map(([n, x, y, d, better]) => {
-        const fx = typeof x === "number" ? nf(d).format(x) : x, fy = typeof y === "number" ? nf(d).format(y) : y;
-        const bx = better === "low" && typeof x === "number" && x < y - 1e-9, by = better === "low" && typeof y === "number" && y < x - 1e-9;
-        return `<tr><td>${n}</td><td class="n ${bx ? "best" : ""}">${fx}${bx ? " ◂" : ""}</td><td class="n ${by ? "best" : ""}">${fy}${by ? " ◂" : ""}</td></tr>`;
-      }).join("") + `</tbody>`;
-  }
-
-  // ---------- Render: fire strategy ----------
+  // ---------- Fire strategy ----------
   function renderFire(v, r) {
-    const fr = r.fire;
-    const k = (l, val, unit, s) => `<div class="kpi"><div class="l">${l}</div><div class="v">${val}<small>${unit}</small></div><div class="s">${s}</div></div>`;
+    const fr = r.fire, b = r.bay;
     document.getElementById("fireKpis").innerHTML = [
-      k("Li-ion cells / year", f0(fr.cellsYr), "", `${f1(fr.li)} cells/t after ${f0(v.liSort)}% pre-removal`),
-      k("Cells in bunker, peak", f0(fr.cellsBunkerPeak), "", `${f0(fr.bunkerM3)} m³ conservative stock`),
-      k("Cells per P1 tunnel", f0(fr.cellsP1), "", `${f0(fr.cellsP2)} per P2 tunnel`),
-      k("Bunker residence", fr.maxAge, fr.maxAge === 1 ? "day" : "days", `max · average ${f1(fr.avgAge)} d (FIFO)`),
-      k("Fire bays needed", fr.bays, "", `at ${f0(v.pileMax)} m³ max pile`),
-      k("Fire water, governing pile", f0(fr.governing.water), "m³", `${f0(fr.governing.lpm)} l/min · ${fr.governing.n.toLowerCase()}`)
+      kpi("Bay peak stock", f0(b.peak), "t", `${f0(fr.bayM3)} m³ at ${f0(v.rho * 1000)} kg/m³`),
+      kpi("Bay floor area", f0(fr.bayArea), "m²", `pile ${f1(v.bayH)} m high · ${fr.bays} bay${fr.bays > 1 ? "s" : ""} ≤ ${f0(v.pileMax)} m³`),
+      kpi("Watch time before tunnel", b.minAge, b.minAge === 1 ? "day" : "days", `min · max ${b.maxAge} d (hold ${f0(v.holdH)} h)`),
+      kpi("Li-ion cells shredded / day", f0(fr.cellsDay), "", `${f0(fr.cellsBay)} in bay at peak`),
+      kpi("Fire water, governing pile", f0(fr.governing.water), "m³", `${f0(fr.governing.lpm)} l/min · ${fr.governing.n.toLowerCase()}`)
     ].join("");
 
-    // Stacked bars: cells by location per day
-    const svg = document.getElementById("fireChart");
-    const W = svg.clientWidth || 600, H = 230, left = 56, right = 10, top = 24, bot = 28;
-    const data = fr.byDay, keys = [["bunker", "Reception bunker", "var(--s-water)"], ["p1", "Phase 1 tunnels", "var(--s-org)"], ["p2", "Phase 2 tunnels", "var(--s-min)"]];
-    const maxV = Math.max(1, ...data.map(x => x.bunker + x.p1 + x.p2));
+    // Bay chart: stacked holding / cleared per day (Mon–Sun)
+    const svg = document.getElementById("bayChart");
+    const W = svg.clientWidth || 600, H = 230, left = 52, right = 10, top = 24, bot = 28;
+    const data = b.byDay.slice().sort((a, c) => a.dow - c.dow);
+    const maxV = Math.max(1, ...data.map(x => x.holding + x.cleared));
     const pw = Math.pow(10, Math.floor(Math.log10(maxV))), nice = Math.ceil(maxV / pw * 1.1) * pw;
     const sy = (H - top - bot) / nice, bw = (W - left - right) / 7;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H);
@@ -934,89 +782,185 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       s += `<line x1="${left}" x2="${W - right}" y1="${y}" y2="${y}" stroke="var(--grid)"/>`;
       s += `<text x="${left - 6}" y="${y + 4}" font-size="11" text-anchor="end" fill="var(--text-muted)">${f0(val)}</text>`;
     }
-    s += `<text x="0" y="10" font-size="11" fill="var(--text-muted)">cells</text>`;
+    s += `<text x="0" y="12" font-size="11" fill="var(--text-muted)">t</text>`;
+    const limT = v.pileMax * v.rho;
     data.forEach((x, i) => {
       const bx = left + i * bw + bw * 0.2, w = bw * 0.6;
       let y = H - bot;
-      keys.forEach(([key, , col], j) => {
-        const h = x[key] * sy;
-        if (h <= 0) return;
-        const hh = Math.max(0, h - 2);
-        s += `<rect x="${bx}" y="${y - h}" width="${w}" height="${hh}" rx="${j === 2 ? 3 : 0}" fill="${col}"/>`;
+      [["cleared", "var(--s-min)"], ["holding", "var(--s-water)"]].forEach(([k, col], j) => {
+        const h = x[k] * sy;
+        if (h <= 0.5) return;
+        s += `<rect x="${bx}" y="${y - h}" width="${w}" height="${Math.max(0, h - 2)}" rx="${j === 1 ? 3 : 0}" fill="${col}"/>`;
         y -= h;
       });
-      const tot = x.bunker + x.p1 + x.p2;
-      s += `<rect x="${left + i * bw}" y="${top}" width="${bw}" height="${H - top - bot}" fill="transparent" data-tip="${esc(`<b>${DAYS[x.dow]}, end of day</b>` + keys.map(([key, lab]) => tr(lab, f0(x[key]))).join("") + tr("Total cells", f0(tot)))}"/>`;
+      s += `<rect x="${left + i * bw}" y="${top}" width="${bw}" height="${H - top - bot}" fill="transparent" data-tip="${esc(`<b>${DAYS[x.dow]}</b>` + tr("Holding (< hold time)", f0(x.holding) + " t") + tr("Cleared for loading", f0(x.cleared) + " t") + tr("Peak in day", f0(x.peak) + " t / " + f0(x.peak / v.rho) + " m³") + tr("Shredded today", f0(x.shred) + " t") + tr("Loaded to tunnel", f0(x.loaded) + " t"))}"/>`;
       s += `<text x="${bx + w / 2}" y="${H - 10}" font-size="11" text-anchor="middle" fill="var(--text-secondary)">${DAYS[x.dow]}</text>`;
     });
+    if (limT < nice) {
+      const y = H - bot - limT * sy;
+      s += `<line x1="${left}" x2="${W - right}" y1="${y}" y2="${y}" stroke="var(--text-secondary)" stroke-dasharray="4 3"/>`;
+      s += `<text x="${W - right}" y="${y - 4}" font-size="11" text-anchor="end" fill="var(--text-secondary)">one pile ≤ ${f0(v.pileMax)} m³</text>`;
+    }
     s += `<line x1="${left}" x2="${W - right}" y1="${H - bot}" y2="${H - bot}" stroke="var(--text-muted)"/>`;
     svg.innerHTML = s;
     bindTips(svg);
+    document.getElementById("bayNote").innerHTML =
+      `The bay has to hold more than the ${f0(v.holdH)} h minimum (${f0(r.shredDay)} t/day) because each refill takes a whole ${f0(r.s1.t)} t batch at once, and only waste shredded before the hold time is eligible. ` +
+      `Size it at 350 kg/m³: lower density means more volume.`;
 
     document.getElementById("fireTable").innerHTML =
-      `<thead><tr><th>Pile / compartment</th><th class="n">Volume m³</th><th class="n">vs limit</th><th class="n">Water l/min</th><th class="n">Water m³</th></tr></thead><tbody>` +
-      fr.piles.map(p => {
-        const over = p.m3 > v.pileMax;
-        return `<tr><td>${p.n}</td><td class="n">${f0(p.m3)}</td><td class="n">${over ? `<span class="pill warn">! ${f1(p.m3 / v.pileMax)}×</span>` : '<span class="pill ok">✓ ok</span>'}</td><td class="n">${f0(p.lpm)}</td><td class="n">${f0(p.water)}</td></tr>`;
-      }).join("") + `</tbody>`;
+      `<thead><tr><th>Pile / compartment</th><th class="n">m³</th><th class="n">vs limit</th><th class="n">l/min</th><th class="n">Water m³</th></tr></thead><tbody>` +
+      fr.piles.map(p => `<tr><td>${p.n}</td><td class="n">${f0(p.m3)}</td><td class="n">${p.m3 > v.pileMax ? `<span class="pill warn">! ${f1(p.m3 / v.pileMax)}×</span>` : '<span class="pill ok">✓ ok</span>'}</td><td class="n">${f0(p.lpm)}</td><td class="n">${f0(p.water)}</td></tr>`).join("") + `</tbody>`;
     document.getElementById("fireNote").innerHTML =
-      `Water for ${f0(v.waterDur)} min at ${f1(v.waterRate)} l/min per m³. The fire-water containment (bunded yard, lagoon or tank) must hold the governing volume, ${f0(fr.governing.water)} m³, plus rainfall. ` +
-      `The tunnels are concrete compartments well over the pile limit. Their FPP case is compartmentation: doors shut, aeration fans stopped or switched to recirculation, and the irrigation spigots used as fixed suppression. That needs sign-off from the fire engineer.`;
+      `Split into ${fr.bays} bays, the largest single bay is ≤ ${f0(v.pileMax)} m³ (${f0(v.pileMax * v.waterRate)} l/min). The tunnels are then the largest piles on site; their case in the fire plan is compartmentation (doors shut, aeration stopped, irrigation spigots as deluge). Containment must hold the governing fire-water volume plus rainfall.`;
 
     const rows = [
-      ["Reception & tipping", `${f0(r.delPerDay)} t/day · ${f1(r.delPerDay / v.payIn)} trucks/day`, "Watch the tipping face; IR thermal cameras over the bunker linked to alarm and monitor/deluge; pick out visible batteries and vapes; hot-load quarantine bay of about " + f0(fr.quarantineM3) + " m³ (one truckload), away from the building"],
-      ["Bunker storage", `peak ${f0(fr.bunkerM3)} m³ · ${fr.maxAge} d max residence`, `Keep stock below ${f0(v.pileMax)} m³ per bay (${fr.bays} bay${fr.bays > 1 ? "s" : ""}); rotate first-in-first-out; no stock left over the weekend above the planned level; fire walls with ≥ 0.5 m freeboard over the pile`],
-      ["Loader handling", `${f0(fr.handledWeek)} cell-handlings/week`, "Crushing by the bucket is the main ignition route for Li-ion cells. Don't compact or track over the waste; fit fire suppression and a thermal camera to the loader; keep a clear exit route"],
-      ["Phase 1 tunnels", `${f0(fr.cellsP1)} cells/tunnel`, "Continuous pile-temperature probes with a rate-of-rise alarm on top of the process setpoint; interlock to stop aeration and close doors; irrigation spigots usable as a manual deluge"],
-      ["Phase 2 tunnels (heated)", `${f0(fr.cellsP2)} cells/tunnel · ${f0(r.kwPerTunnel)} kW heat`, "Additional heat raises the pile temperature. Set a high-temperature trip on the heater, separate from the process control; cut heat on any fire alarm"],
-      ["Output & dispatch", `${f0(fr.cellsYr)} cells/yr leave in the output`, "Cells survive composting. Treat the output store as a battery-bearing pile (same pile limit, detection and quarantine), or add magnet/eddy-current and picking downstream"]
+      ["Reception & shredder", `${f0(r.shredDay)} t/day · ${f1(r.shredDay / v.payIn)} trucks`, "Pick out visible batteries and vapes before shredding; spark and flame detection with an extinguishing system at the shredder discharge; quarantine bay for one hot truckload (" + f0(v.payIn / v.rho) + " m³), away from the building"],
+      ["Detection bay (new)", `${f0(fr.bayM3)} m³ peak · ≥ ${f0(v.holdH)} h hold`, `Keep piles ≤ ${f1(v.bayH)} m so IR cameras see the whole surface; ${fr.bays} bays ≤ ${f0(v.pileMax)} m³ with fire walls; automatic monitor/deluge linked to the cameras; loader access from two sides so a hot spot can be dug out and taken to quarantine; first in, first out (the dashboard's plan never loads material that hasn't reached the hold time)`],
+      ["Bay → stage 1 fill", `${f0(r.s1.t)} t per fill · ${f0(fr.cellsS1)} cells`, "Take material from the cleared face only; check with a handheld thermal camera before each fill; stop filling on any camera alarm"],
+      ["Stage 1 → stage 2 turn", `${r.N} turns/week`, "The receiving stage 2 tunnel must be empty and inspected before the turn starts (step ①). Turning is also a second chance to spot hot spots: pile-temperature probes and a rate-of-rise alarm"],
+      ["Stage 2 (heated)", `${f0(v.kw)} kW per tunnel · ${v.hDays} days`, "High-temperature trip on the heater, separate from the process control; cut heat and aeration on any fire alarm"],
+      ["Output", `${f0(fr.cellsYr)} cells/yr unless removed`, "Composting doesn't destroy cells. Screen out metals and pick batteries before storing output, and treat the output store as a battery-bearing pile"]
     ];
     document.getElementById("fireCtrl").innerHTML =
       `<thead><tr><th>Stage</th><th>Exposure</th><th style="white-space:normal">Controls to include in the FPP</th></tr></thead><tbody>` +
-      rows.map(([a, b, c]) => `<tr><td>${a}</td><td class="mono">${b}</td><td style="white-space:normal;min-width:320px">${c}</td></tr>`).join("") + `</tbody>`;
+      rows.map(([a, bb, c]) => `<tr><td>${a}</td><td class="mono">${bb}</td><td style="white-space:normal;min-width:320px">${c}</td></tr>`).join("") + `</tbody>`;
+  }
+
+  // ---------- Mass balance chart ----------
+  function renderMass(v, r) {
+    const svg = document.getElementById("massChart");
+    const W = svg.clientWidth || 600, rowH = 34, gap = 30, left = 110, right = 76, top = 8;
+    const st = [
+      { n: "Input", w: r.mb.W0, o: r.mb.O0, m: r.mb.M, sub: `DS ${f0(v.DS)}% · ODS ${f0(v.ODS)}%` },
+      { n: "Out stage 1", w: r.mb.W1, o: r.mb.O1, m: r.mb.M, sub: `DS ${f0(r.mb.DS1)}% · ODS ${f0(r.mb.ODS1)}%`, loss: [["evaporation", r.mb.evap1], ["degradation", r.mb.deg1]] },
+      { n: "Out stage 2", w: r.mb.W2, o: r.mb.O2, m: r.mb.M, sub: `DS ${f0(r.mb.DS2)}% · ODS ${f0(r.mb.ODS2)}%`, loss: [["evaporation", r.mb.evap2], ["degradation", r.mb.deg2], ["heat evaporation", r.mb.heatEvap]] }
+    ];
+    const H = top + st.length * (rowH + gap);
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H);
+    const sx = (W - left - right) / v.Q;
+    let s = "";
+    st.forEach((x, i) => {
+      const y = top + i * (rowH + gap), tot = x.w + x.o + x.m;
+      s += `<text x="0" y="${y + 14}" font-size="12" font-weight="600" fill="var(--text-primary)">${x.n}</text>`;
+      s += `<text x="0" y="${y + 29}" font-size="11" fill="var(--text-muted)">${x.sub}</text>`;
+      let xx = left;
+      [["Water", x.w, "var(--s-water)"], ["Organic DS", x.o, "var(--s-org)"], ["Mineral DS", x.m, "var(--s-min)"]].forEach(([lab, val, col], j) => {
+        s += `<rect x="${xx}" y="${y}" width="${Math.max(0, val * sx - 2)}" height="${rowH}" fill="${col}" rx="${j === 2 ? 4 : 0}" data-tip="${esc(`<b>${x.n} · ${lab}</b>` + tr("t/yr", f0(val)) + tr("Share", f1(val / tot * 100) + "%"))}"/>`;
+        xx += val * sx;
+      });
+      s += `<text x="${left + tot * sx + 6}" y="${y + rowH / 2 + 4}" font-size="12" fill="var(--text-primary)" font-family="IBM Plex Mono">${f0(tot)} t</text>`;
+      if (x.loss) s += `<text x="${left}" y="${y - 8}" font-size="11" fill="var(--text-muted)">− ${x.loss.map(l => `${l[0]} ${f0(l[1])} t`).join(" · ")}</text>`;
+    });
+    svg.innerHTML = s;
+    bindTips(svg);
+  }
+
+  // ---------- Validation vs WTT ----------
+  function renderValidation(v, r) {
+    const k = v.Q / WTT.Q;
+    document.getElementById("valSub").textContent = k === 1
+      ? "The model recomputes the WTT 3-tunnel sheet. The Δ column should be ≈0 at 350 kg/m³."
+      : `WTT's sheet is for 75 kt. Mass flows are scaled ×${f2(k)} for comparison; per-tunnel values stay the same when tunnels double with throughput.`;
+    if (Math.abs(v.rho - 0.35) > 1e-9) document.getElementById("valSub").textContent += " Per-tunnel volume and height rows are hidden because WTT used 350 kg/m³.";
+    const perT = Math.abs(v.Q / v.N - 25000) < 1e-6 && Math.abs(v.rho - 0.35) < 1e-9;
+    const rows = [
+      ["Stage 1 water evaporation", WTT.evap1 * k, r.mb.evap1, "t/yr", 0],
+      ["Stage 1 organics degradation", WTT.deg1 * k, r.mb.deg1, "t/yr", 0],
+      ["Output stage 1", WTT.out1 * k, r.mb.out1, "t/yr", 0],
+      ["Stage 2 water evaporation", WTT.evap2 * k, r.mb.evap2, "t/yr", 0],
+      ["Additional-heat evaporation", WTT.heatEvap * k, r.mb.heatEvap, "t/yr", 0],
+      ["Output stage 2", WTT.out2 * k, r.mb.out2, "t/yr", 0],
+      ["Total mass reduction", WTT.reduction, r.mb.reduction, "%", 2],
+      ["Heat input", WTT.kWh * k, r.mb.kWh, "kWh/yr", 0]
+    ].concat(perT ? [
+      ["S1 weight / tunnel", WTT.p1.t, r.s1.t, "t", 0],
+      ["S1 volume / tunnel", WTT.p1.m3, r.s1.m3, "m³", 0],
+      ["S1 filling height", WTT.p1.fill, r.s1.fill, "m", 2],
+      ["S2 weight / tunnel", WTT.p2.t, r.s2.t, "t", 0],
+      ["S2 volume / tunnel", WTT.p2.m3, r.s2.m3, "m³", 0],
+      ["S2 filling height", WTT.p2.fill, r.s2.fill, "m", 2]
+    ] : []);
+    document.getElementById("valTable").innerHTML =
+      `<thead><tr><th>Item</th><th class="n">WTT</th><th class="n">Model</th><th class="n">Δ</th><th></th></tr></thead><tbody>` +
+      rows.map(([n, a, b, u, d]) => {
+        const diff = b - a, tol = Math.max(Math.abs(a) * 0.005, d === 0 ? 1.5 * k : Math.pow(10, -d) * 1.5);
+        const ok = Math.abs(diff) <= tol;
+        return `<tr><td>${n} <span style="color:var(--text-muted)">${u}</span></td><td class="n">${nf(d).format(a)}</td><td class="n">${nf(d).format(b)}</td><td class="n">${diff >= 0 ? "+" : "−"}${nf(d).format(Math.abs(diff))}</td><td>${ok ? '<span class="pill ok">✓ match</span>' : '<span class="pill warn">! differs</span>'}</td></tr>`;
+      }).join("") + "</tbody>";
+  }
+
+  // ---------- Build comparison ----------
+  function renderCompare(v) {
+    const a = compute(Object.assign({}, v, BUILDS.b1)), b = compute(Object.assign({}, v, BUILDS.b2));
+    const rows = [
+      ["Throughput (t/yr)", a.v.Q, b.v.Q, 0],
+      ["Tunnels (stage 1 + stage 2)", `${a.N} + ${a.N} (T1–T${2 * a.N})`, `${b.N} + ${b.N} (T1–T${2 * b.N})`],
+      ["Turn days", "Mon · Wed · Fri", "Mon · Wed · Fri (2 tunnels each)"],
+      ["Stage 1 load per tunnel (t)", a.s1.t, b.s1.t, 0],
+      ["Stage 1 filling height (m)", a.s1.fill, b.s1.fill, 2],
+      ["Loader time, peak day (h)", a.maxLoaderH, b.maxLoaderH, 1],
+      ["Loaders needed", Math.ceil(a.maxLoaderH / v.shift), Math.ceil(b.maxLoaderH / v.shift), 0],
+      ["Outbound trucks / week", a.days.reduce((s, x) => s + x.trucksOut, 0), b.days.reduce((s, x) => s + x.trucksOut, 0), 1],
+      ["Detection bay peak (m³)", a.fire.bayM3, b.fire.bayM3, 0],
+      ["Detection bay floor (m²)", a.fire.bayArea, b.fire.bayArea, 0],
+      ["Fire bays ≤ pile limit", a.fire.bays, b.fire.bays, 0],
+      ["Heat peak, staggered (kW)", a.peakKw, b.peakKw, 0],
+      ["Output (t/yr)", a.mb.out2, b.mb.out2, 0]
+    ];
+    document.getElementById("cmpTable").innerHTML = `<thead><tr><th>Metric</th><th class="n">Build 1</th><th class="n">Build 2</th></tr></thead><tbody>` +
+      rows.map(([n, x, y, d]) => `<tr><td>${n}</td><td class="n">${typeof x === "number" ? nf(d).format(x) : x}</td><td class="n">${typeof y === "number" ? nf(d).format(y) : y}</td></tr>`).join("") + "</tbody>";
   }
 
   // ---------- CSV ----------
-  let lastWeek = [];
+  let last = null;
   function exportCsv() {
-    const head = ["Day", "Deliveries_t", "Trucks_in", "P1_turnaround", "Fresh_to_P1_t", "Fresh_to_P1_m3", "P2_turnaround", "P1_to_P2_t", "P1_to_P2_m3", "P2_out_t", "P2_out_m3", "Trucks_out", "Buckets", "Loader_h", "Bunker_end_t", "P2_tunnels_heating"];
-    const tl = a => a.map(i => "T" + (i + 1)).join(" ");
-    const lines = [head.join(",")].concat(lastWeek.map(x => [DAYS[x.dow], x.del.toFixed(1), x.trucksIn.toFixed(2), tl(x.f1), x.fresh.toFixed(1), x.vFresh.toFixed(1), tl(x.f2), x.p1out.toFixed(1), x.vTrans.toFixed(1), x.p2out.toFixed(1), x.vOut.toFixed(1), x.trucksOut.toFixed(2), x.buckets, x.loaderH.toFixed(2), x.recLevel.toFixed(1), x.heating].join(",")));
+    if (!last) return;
+    const r = last;
+    const head = ["Day", "Shredded_t", "Step", "Tunnel_from", "Tunnel_to", "Tonnes", "m3"];
+    const lines = [head.join(",")];
+    r.days.forEach(x => {
+      if (x.shred) lines.push([x.name, x.shred.toFixed(1), "Shred to detection bay", "Shredder", "Bay", x.shred.toFixed(1), (x.shred / r.v.rho).toFixed(1)].join(","));
+      x.turns.forEach(p => {
+        lines.push([x.name, "", "1 Empty to output", T(p.s2), "Output", r.tOut.toFixed(1), (r.tOut / r.v.rho).toFixed(1)].join(","));
+        lines.push([x.name, "", "2 Turn", T(p.s1), T(p.s2), r.s2.t.toFixed(1), r.s2.m3.toFixed(1)].join(","));
+      });
+      x.fills.forEach(p => lines.push([x.name, "", "3 Fill from bay", "Bay", T(p.s1), r.s1.t.toFixed(1), r.s1.m3.toFixed(1)].join(",")));
+    });
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = "tunnel-weekly-schedule.csv";
+    a.href = URL.createObjectURL(blob); a.download = "tunnel-weekly-plan.csv";
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
-  // ---------- Main render ----------
+  // ---------- Main ----------
   function render() {
-    const v = state.v;
-    const r = compute(v);
+    const v = state.v, r = compute(v);
+    last = r;
     syncInputs();
     renderKpis(v, r);
     renderAlerts(v, r);
+    renderGantt(v, r);
+    renderDays(v, r);
+    renderTunnels(v, r);
+    renderFire(v, r);
     renderMass(v, r);
     renderValidation(v, r);
-    renderTunnels(v, r);
-    renderGantt(v, r);
-    lastWeek = renderDays(v, r);
-    renderBuffer(v, r);
     renderCompare(v);
-    renderFire(v, r);
     save();
   }
 
   buildInputs();
-  document.getElementById("presetSeg").addEventListener("click", e => {
-    const p = e.target.dataset.preset;
-    if (!p || p === "custom") return;
-    state = { preset: p, v: presetValues(p) };
+  document.getElementById("buildSeg").addEventListener("click", e => {
+    const b = e.target.dataset.build;
+    if (!b || b === "custom") return;
+    state = { build: b, v: Object.assign(buildValues(b), { rho: state.v.rho }) };
     render();
   });
   document.getElementById("btnReset").addEventListener("click", () => {
-    const p = state.preset === "t4" ? "t4" : "t3";
-    state = { preset: p, v: presetValues(p) };
+    const b = state.build === "b2" ? "b2" : "b1";
+    state = { build: b, v: buildValues(b) };
     render();
   });
   document.getElementById("btnCsv").addEventListener("click", exportCsv);
