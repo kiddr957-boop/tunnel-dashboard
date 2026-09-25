@@ -1,0 +1,401 @@
+<title>Tunnel Plan Calc Sheets</title>
+<meta name="description" content="Hand-worked methodology behind the Coleraine tunnel loading dashboard: WTT mass balance, batch sizing, Mon–Sat turning plan, shredder hours, detection bay and fire water.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Kalam:wght@300;400;700&display=swap">
+<style>
+:root {
+  --paper: #fbfaf3;
+  --grid: #dfe7f0;
+  --grid-strong: #c9d6e4;
+  --ink: #1f3c88;
+  --ink-soft: #4a5f9c;
+  --pencil: #5d6068;
+  --red: #c8403a;
+  --hi: #fff07a;
+  --hi-ink: #1f2a44;
+  --box: #1f3c88;
+  --shadow: rgba(31, 60, 136, .12);
+  --desk: #e9e6da;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #18202c;
+    --grid: #222e3e;
+    --grid-strong: #2c3a4e;
+    --ink: #c9dafc;
+    --ink-soft: #9fb3dc;
+    --pencil: #a3a7b0;
+    --red: #ff8a7a;
+    --hi: #5c5316;
+    --hi-ink: #fff6c2;
+    --box: #9fb8f0;
+    --shadow: rgba(0, 0, 0, .35);
+    --desk: #10151d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #18202c;
+  --grid: #222e3e;
+  --grid-strong: #2c3a4e;
+  --ink: #c9dafc;
+  --ink-soft: #9fb3dc;
+  --pencil: #a3a7b0;
+  --red: #ff8a7a;
+  --hi: #5c5316;
+  --hi-ink: #fff6c2;
+  --box: #9fb8f0;
+  --shadow: rgba(0, 0, 0, .35);
+  --desk: #10151d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--desk);
+  color: var(--ink);
+  font-family: 'Kalam', 'Comic Sans MS', 'Segoe Print', cursive;
+  font-weight: 300;
+  font-size: 18px;
+  line-height: 1.55;
+  padding-inline: 16px;
+  padding-block: 28px 56px;
+}
+.sheet {
+  max-width: 860px;
+  margin: 0 auto 36px;
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 22px 22px;
+  box-shadow: 0 2px 0 var(--grid-strong), 0 10px 30px var(--shadow);
+  position: relative;
+  padding: 26px 28px 34px 86px;
+}
+.sheet::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 64px;
+  border-left: 2px solid var(--red); opacity: .7;
+}
+@media (max-width: 620px) {
+  body { font-size: 16.5px; }
+  .sheet { padding: 20px 16px 26px 46px; }
+  .sheet::before { left: 32px; }
+  .ref { left: -44px !important; width: 38px !important; font-size: 16px !important; }
+}
+h1, h2 { font-family: 'Caveat', 'Segoe Print', cursive; font-weight: 700; color: var(--ink); text-wrap: balance; margin: 0; }
+h1 { font-size: 46px; line-height: 1.05; }
+h2 { font-size: 34px; line-height: 1.1; margin: 8px 0 6px; display: inline-block; border-bottom: 2px solid var(--ink); padding-bottom: 0; }
+p { margin: 6px 0 10px; max-width: 66ch; }
+.blk { position: relative; margin: 18px 0 8px; }
+.ref {
+  position: absolute; left: -80px; top: 6px; width: 58px; text-align: center;
+  font-family: 'Caveat', cursive; font-size: 22px; color: var(--red); font-weight: 700;
+}
+.calc { font-weight: 400; margin: 2px 0 2px 12px; }
+.calc .lbl { color: var(--pencil); font-weight: 300; }
+.ans {
+  display: inline-block; border: 2px solid var(--box); padding: 0 10px; margin: 4px 0 4px 12px;
+  border-radius: 3px 8px 4px 9px / 8px 3px 9px 4px; font-weight: 700;
+  transform: rotate(-.6deg);
+}
+mark { background: linear-gradient(100deg, transparent 2%, var(--hi) 4%, var(--hi) 96%, transparent 98%); color: var(--hi-ink); padding: 0 4px; font-weight: 400; }
+.note { color: var(--pencil); font-size: .92em; }
+.red { color: var(--red); }
+.u2 { text-decoration: underline double; text-underline-offset: 4px; }
+.titleblock {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 2px solid var(--ink);
+  margin: 0 0 18px; font-size: 15px; line-height: 1.3;
+}
+.titleblock div { border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 4px 8px; min-width: 0; }
+.titleblock div:nth-child(4n) { border-right: 0; }
+.titleblock div:nth-last-child(-n+4) { border-bottom: 0; }
+.titleblock b { display: block; font-weight: 700; font-size: 17px; overflow-wrap: anywhere; }
+.titleblock span { color: var(--pencil); }
+@media (max-width: 620px) {
+  .titleblock { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .titleblock div:nth-child(4n) { border-right: 1px solid var(--ink); }
+  .titleblock div:nth-child(2n) { border-right: 0; }
+  .titleblock div:nth-last-child(-n+4) { border-bottom: 1px solid var(--ink); }
+  .titleblock div:nth-last-child(-n+2) { border-bottom: 0; }
+}
+.sheetno { position: absolute; top: 14px; right: 20px; font-family: 'Caveat', cursive; font-size: 20px; color: var(--pencil); }
+.sk { width: 100%; height: auto; display: block; margin: 8px 0; }
+.sk text { font-family: 'Kalam', cursive; fill: var(--ink); }
+.skwrap { overflow-x: auto; }
+table.hand { border-collapse: collapse; margin: 8px 0 10px 12px; font-size: .95em; font-variant-numeric: tabular-nums; }
+table.hand th, table.hand td { padding: 2px 12px 2px 0; text-align: left; vertical-align: top; }
+table.hand th { font-weight: 700; border-bottom: 2px solid var(--ink); }
+table.hand td.n, table.hand th.n { text-align: right; }
+.tblwrap { overflow-x: auto; }
+.sticky {
+  background: var(--hi); color: var(--hi-ink); padding: 10px 14px; margin: 12px 0 12px 12px;
+  transform: rotate(.8deg); box-shadow: 2px 3px 0 var(--shadow); max-width: 60ch; font-weight: 400;
+}
+.sticky.l { transform: rotate(-.9deg); }
+ul.tick { list-style: none; padding-left: 12px; margin: 6px 0; }
+ul.tick li { position: relative; padding-left: 30px; margin: 4px 0; max-width: 64ch; }
+ul.tick li::before { content: ""; position: absolute; left: 0; top: 6px; width: 17px; height: 17px; border: 2px solid var(--ink); border-radius: 2px 5px 3px 4px; }
+ul.tick li.done::after { content: "✓"; position: absolute; left: 3px; top: -6px; font-size: 24px; color: var(--red); font-weight: 700; }
+.sig { display: flex; flex-wrap: wrap; gap: 12px 40px; margin-top: 22px; font-size: 16px; color: var(--pencil); }
+.sig span { border-bottom: 1px solid var(--pencil); min-width: 180px; display: inline-block; }
+a { color: var(--ink); }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="2.4"/></filter>
+</svg>
+
+<!-- ================= SHEET 1 ================= -->
+<section class="sheet">
+  <div class="sheetno">sheet 1 of 4</div>
+  <h1>Tunnel loading &amp; unloading: methodology</h1>
+  <p class="note">How every number on the dashboard (<i>loading-dashboard.html</i>) is worked out, by hand. Build 1 at 350 kg/m³ unless stated.</p>
+
+  <div class="titleblock">
+    <div><span>Project</span><b>Coleraine</b></div>
+    <div><span>Client</span><b>Riverridge</b></div>
+    <div><span>Job no.</span><b>WTT 26029</b></div>
+    <div><span>Basis</span><b>WTT rev 1 (prelim.)</b></div>
+    <div><span>Subject</span><b>Tunnel ops + fire bay</b></div>
+    <div><span>Prepared</span><b>Claude, for review</b></div>
+    <div><span>Checked</span><b>&nbsp;</b></div>
+    <div><span>Date</span><b>25/09/2026</b></div>
+  </div>
+
+  <div class="blk">
+    <div class="ref">§0</div>
+    <h2>Design basis</h2>
+    <table class="hand">
+      <tr><td>Build 1</td><td>75,000 t/yr MSW · 6 tunnels · <b>T1–T3</b> stage 1 (40 m), <b>T4–T6</b> stage 2 (33 m)</td></tr>
+      <tr><td>Build 2</td><td>150,000 t/yr · 12 tunnels · <b>T1–T6</b> stage 1, <b>T7–T12</b> stage 2 (same sizes)</td></tr>
+      <tr><td>Tunnels</td><td>8 m wide × 6 m high · max fill <b>4.5 m</b></td></tr>
+      <tr><td>Feed</td><td>DS 63% · ODS 44% of DS (WTT avg. samples 1–5)</td></tr>
+      <tr><td>Density</td><td><b>350 kg/m³ minimum</b>, can rise up to +20% (420)</td></tr>
+      <tr><td>Working week</td><td><b>Mon–Sat</b>, 52 wk/yr → 312 days/yr</td></tr>
+      <tr><td>Shredder</td><td>MSW <b>1,600 h/yr</b>. The remaining time is for bulky waste</td></tr>
+      <tr><td>Loader</td><td><b>9 m³</b> bucket · 2 min cycle <span class="red">(cycle assumed)</span></td></tr>
+      <tr><td>Fire bay</td><td>24 h hold · pile <b>0.5 m below</b> bay wall top</td></tr>
+    </table>
+  </div>
+
+  <div class="blk">
+    <div class="ref">§1</div>
+    <h2>Mass balance: stage 1</h2>
+    <p>Split the feed into water, organic solids and mineral solids:</p>
+    <div class="calc"><span class="lbl">water</span> W₀ = 75,000 × (1 − 0.63) = <b>27,750 t</b></div>
+    <div class="calc"><span class="lbl">dry solids</span> DS₀ = 75,000 × 0.63 = <b>47,250 t</b></div>
+    <div class="calc"><span class="lbl">organic DS</span> O₀ = 47,250 × 0.44 = <b>20,790 t</b> <span class="lbl">&nbsp;mineral</span> M = <b>26,460 t</b></div>
+    <p>WTT's losses turned into <i>rates</i>, so they scale when throughput changes:</p>
+    <div class="calc">evap. rate e₁ = 13,022 ÷ 27,750 = <mark>46.93% of water</mark></div>
+    <div class="calc">degr. rate d₁ = 2,068 ÷ 20,790 = <mark>9.95% of ODS</mark></div>
+    <div class="calc">Out₁ = 75,000 − 13,022 − 2,068 = <span class="ans">59,910 t/yr</span></div>
+    <div class="calc"><span class="lbl">check DS</span> (18,722 + 26,460) ÷ 59,910 = 75.4% <span class="note">(WTT shows 75%) ✓</span></div>
+  </div>
+
+  <div class="blk">
+    <div class="ref">§2</div>
+    <h2>Mass balance: stage 2 + heat</h2>
+    <div class="calc">e₂ = 4,814 ÷ 14,728 = <mark>32.69%</mark> &nbsp; d₂ = 764 ÷ 18,722 = <mark>4.08%</mark></div>
+    <p>WTT's "additional heat −1,847 t/yr" is water driven off by heat:</p>
+    <div class="calc">latent heat 2,500 kJ/kg ÷ 3.6 = 694.4 kWh per t water</div>
+    <div class="calc">1,282,814 kWh ÷ 694.4 = <b>1,847 t</b> ✓</div>
+    <div class="calc"><span class="lbl">per tunnel</span> 1,282,814 ÷ (156 batches × 4 d × 24 h) = <b>85.7 kW</b></div>
+    <div class="calc">Out₂ = 59,910 − 4,814 − 764 − 1,847 = <span class="ans">52,485 t/yr</span> <span class="note">(WTT 52,486)</span></div>
+    <div class="calc">reduction = 1 − 52,485 ÷ 75,000 = <b class="u2">30.02%</b> ✓ &nbsp; DS₂ = 84.6%</div>
+    <div class="sticky">Caution: WTT counts degradation as a solids-only loss. Real composting also makes water, so actual evaporation and output moisture will be a bit higher.</div>
+  </div>
+</section>
+
+<!-- ================= SHEET 2 ================= -->
+<section class="sheet">
+  <div class="sheetno">sheet 2 of 4</div>
+
+  <div class="blk">
+    <div class="ref">§3</div>
+    <h2>Batch per tunnel</h2>
+    <p>Every stage 1 tunnel turns once a week:</p>
+    <div class="calc">batches = 52 wk × 3 tunnels = <b>156 /yr</b></div>
+    <div class="calc">stage 1 load = 75,000 ÷ 156 = <span class="ans">481 t</span> &nbsp; → 481 ÷ 0.35 = <b>1,374 m³</b></div>
+    <div class="calc">stage 2 load = 59,910 ÷ 156 = <span class="ans">384 t</span> &nbsp; → <b>1,097 m³</b></div>
+    <div class="calc">stage 2 out = 52,485 ÷ 156 = <b>336 t</b> &nbsp; → 961 m³</div>
+    <p><b>Filling height.</b> The first 1.5 m behind the door holds no pile. This value is back-calculated so all 4 of WTT's filling heights match:</p>
+    <div class="calc">stage 1 floor = (40 − 1.5) × 8 = 308 m² &nbsp; → 1,374 ÷ 308 = <span class="ans">4.46 m</span> &lt; 4.5 ✓</div>
+    <div class="calc">stage 2 floor = (33 − 1.5) × 8 = 252 m² &nbsp; → 1,097 ÷ 252 = <span class="ans">4.35 m</span> &lt; 4.5 ✓</div>
+    <div class="calc"><span class="lbl">capacity at 4.5 m</span> 4.5 × 308 × 0.35 = 485 t &nbsp;(only 4 t spare per fill)</div>
+
+    <div class="skwrap">
+    <svg class="sk" viewBox="0 0 640 210" role="img" aria-label="Sketch of a stage 1 tunnel cross-section">
+      <g filter="url(#rough)" stroke="var(--ink)" fill="none" stroke-width="2.2" stroke-linecap="round">
+        <rect x="40" y="30" width="480" height="140"/>
+        <line x1="58" y1="30" x2="58" y2="170" stroke-dasharray="5 5"/>
+        <path d="M60 170 L60 66 L518 66 L518 170" fill="var(--hi)" fill-opacity=".55"/>
+        <line x1="40" y1="61" x2="520" y2="61" stroke="var(--red)" stroke-dasharray="9 6"/>
+        <line x1="545" y1="30" x2="545" y2="170"/><line x1="539" y1="30" x2="551" y2="30"/><line x1="539" y1="170" x2="551" y2="170"/>
+        <line x1="580" y1="66" x2="580" y2="170"/><line x1="574" y1="66" x2="586" y2="66"/><line x1="574" y1="170" x2="586" y2="170"/>
+        <line x1="40" y1="190" x2="520" y2="190"/><line x1="40" y1="184" x2="40" y2="196"/><line x1="520" y1="184" x2="520" y2="196"/>
+      </g>
+      <text x="44" y="22" font-size="15">door</text>
+      <text x="200" y="125" font-size="20">481 t · 1,374 m³</text>
+      <text x="360" y="54" font-size="15" style="fill:var(--red)">4.5 m limit</text>
+      <text x="552" y="104" font-size="15">6 m</text>
+      <text x="588" y="124" font-size="15">4.46</text>
+      <text x="230" y="207" font-size="15">40 m (38.5 usable)</text>
+      <text x="62" y="163" font-size="13">1.5 m dead</text>
+    </svg>
+    </div>
+  </div>
+
+  <div class="blk">
+    <div class="ref">§4</div>
+    <h2>Density ±</h2>
+    <p>Tonnes per fill are fixed by supply (481 t), so higher density just gives a lower pile:</p>
+    <div class="tblwrap">
+    <table class="hand">
+      <tr><th>kg/m³</th><th class="n">m³</th><th class="n">fill (m)</th><th class="n">t at 4.5 m</th><th class="n">spare t/yr</th></tr>
+      <tr><td>350 (min)</td><td class="n">1,374</td><td class="n">4.46</td><td class="n">485</td><td class="n">676</td></tr>
+      <tr><td>385 (+10%)</td><td class="n">1,249</td><td class="n">4.05</td><td class="n">534</td><td class="n">8,243</td></tr>
+      <tr><td>420 (+20%)</td><td class="n">1,145</td><td class="n">3.72</td><td class="n">582</td><td class="n">15,811</td></tr>
+    </table>
+    </div>
+    <p class="note">→ design everything at <b>350</b>: it gives the tallest pile in the tunnels and the biggest volume in the bay. Any higher density is spare capacity, not a problem.</p>
+  </div>
+</section>
+
+<!-- ================= SHEET 3 ================= -->
+<section class="sheet">
+  <div class="sheetno">sheet 3 of 4</div>
+
+  <div class="blk">
+    <div class="ref">§5</div>
+    <h2>Mon–Sat turning plan</h2>
+    <p>Turning always goes into a <b>different</b> tunnel. The stage 2 tunnel is emptied first, so it is the "2nd tunnel available":</p>
+    <div class="skwrap">
+    <svg class="sk" viewBox="0 0 700 250" role="img" aria-label="Sketch of the weekly turning sequence">
+      <g filter="url(#rough)" stroke="var(--ink)" fill="none" stroke-width="2" stroke-linecap="round">
+        <rect x="20" y="20" width="100" height="44"/><rect x="20" y="100" width="100" height="44"/><rect x="20" y="180" width="100" height="44"/>
+        <rect x="300" y="20" width="100" height="44"/><rect x="300" y="100" width="100" height="44"/><rect x="300" y="180" width="100" height="44"/>
+        <path d="M120 42 C 190 30, 230 30, 298 42"/><path d="M290 36 L298 42 L289 48"/>
+        <path d="M120 122 C 190 110, 230 110, 298 122"/><path d="M290 116 L298 122 L289 128"/>
+        <path d="M120 202 C 190 190, 230 190, 298 202"/><path d="M290 196 L298 202 L289 208"/>
+        <path d="M400 42 L 480 42" stroke="var(--red)"/><path d="M472 36 L480 42 L472 48" stroke="var(--red)"/>
+        <path d="M400 122 L 480 122" stroke="var(--red)"/><path d="M472 116 L480 122 L472 128" stroke="var(--red)"/>
+        <path d="M400 202 L 480 202" stroke="var(--red)"/><path d="M472 196 L480 202 L472 208" stroke="var(--red)"/>
+      </g>
+      <text x="44" y="48" font-size="20" font-weight="700">T1</text><text x="44" y="128" font-size="20" font-weight="700">T2</text><text x="44" y="208" font-size="20" font-weight="700">T3</text>
+      <text x="324" y="48" font-size="20" font-weight="700">T4</text><text x="324" y="128" font-size="20" font-weight="700">T5</text><text x="324" y="208" font-size="20" font-weight="700">T6</text>
+      <text x="170" y="22" font-size="15">② Mon turn</text><text x="170" y="102" font-size="15">② Wed turn</text><text x="170" y="182" font-size="15">② Fri turn</text>
+      <text x="488" y="47" font-size="15" style="fill:var(--red)">① Mon: empty first</text>
+      <text x="488" y="127" font-size="15" style="fill:var(--red)">① Wed: empty first</text>
+      <text x="488" y="207" font-size="15" style="fill:var(--red)">① Fri: empty first</text>
+      <text x="20" y="85" font-size="14">③ refill Tue</text><text x="20" y="165" font-size="14">③ refill Thu</text><text x="20" y="243" font-size="14">③ refill Sat</text>
+    </svg>
+    </div>
+    <table class="hand">
+      <tr><th>day</th><th>order of work</th></tr>
+      <tr><td>Mon</td><td>① empty T4 → output 336 t, then ② turn T1 → T4, 384 t</td></tr>
+      <tr><td>Tue</td><td>③ fill T1 from the detection bay, 481 t</td></tr>
+      <tr><td>Wed / Thu</td><td>same for T2 → T5, refill T2</td></tr>
+      <tr><td>Fri / Sat</td><td>same for T3 → T6, refill T3</td></tr>
+      <tr><td>Sun</td><td>no loading · bay under camera watch</td></tr>
+    </table>
+    <div class="calc">stage 1 time = Tue refill → Mon turn = <mark>6 days</mark> &nbsp; stage 2 time = Mon → Mon = 7 days</div>
+    <div class="sticky l">WTT's rates assume 7 + 7 days. We run 6 + 7. <b>Ask WTT to confirm</b> that stage 2 output still meets spec.</div>
+    <p class="note">Build 2: the same days, with 2 tunnels each (T1+T2 → T7+T8 on Mon, and so on).</p>
+  </div>
+
+  <div class="blk">
+    <div class="ref">§6</div>
+    <h2>Loader (9 m³ bucket)</h2>
+    <div class="calc">fill: 1,374 ÷ 9 = 152.6 → <b>153</b> buckets × 2 min = <b>5.1 h</b> <span class="note">(Tue/Thu/Sat)</span></div>
+    <div class="calc">empty: 961 ÷ 9 → 107 · turn: 1,097 ÷ 9 → 122 · total <b>229</b> × 2 min = <span class="ans">7.6 h</span> <span class="note">(Mon/Wed/Fri)</span></div>
+    <div class="calc">week = 3 × 153 + 3 × 229 = 1,146 buckets ≈ <b>38 h</b> → <mark>1 loader</mark> in a 10 h shift ✓</div>
+    <div class="calc"><span class="lbl">Build 2</span> turn days 15.3 h, fill days 10.2 h → <b class="red">2 loaders</b></div>
+  </div>
+
+  <div class="blk">
+    <div class="ref">§7</div>
+    <h2>Shredder: MSW 1,600 h, rest for bulky waste</h2>
+    <div class="calc">MSW rate = 75,000 ÷ 1,600 = <span class="ans">46.9 t/h</span> <span class="note">(Build 2: 93.8 t/h)</span></div>
+    <div class="calc">MSW per day = 75,000 ÷ 312 = <b>240 t</b> in 1,600 ÷ 312 = <b>5.1 h</b></div>
+    <div class="calc">bulky window = 3,120 − 1,600 = <b>1,520 h/yr ≈ 4.9 h/day</b> <span class="red">(3,120 = 10 h × 6 d × 52, assumed)</span></div>
+    <p class="note">Assumed: bulky waste doesn't go to the tunnels or the detection bay. Run MSW early in the shift so the next day's fill has had its full 24 h.</p>
+  </div>
+</section>
+
+<!-- ================= SHEET 4 ================= -->
+<section class="sheet">
+  <div class="sheetno">sheet 4 of 4</div>
+
+  <div class="blk">
+    <div class="ref">§8</div>
+    <h2>Detection bay after the shredder</h2>
+    <p>Idea: batteries damaged by the shredder get a chance to go into thermal runaway <b>in an open, camera-watched bay</b>, not inside a closed tunnel.</p>
+    <p><b>Why the bay is bigger than one day:</b></p>
+    <div class="calc">1 fill (481 t) = 481 ÷ 240 = <mark>2 days of shredding</mark></div>
+    <div class="calc">24 h rule → a fill can only use material shredded <i>before</i> today</div>
+    <div class="calc">fill-day peak = 2 days cleared + today's 240 t = 3 × 240 = <span class="ans">721 t</span></div>
+    <div class="calc">→ 721 ÷ 0.35 = <b>2,060 m³</b> <span class="note">(size it at 350 kg/m³)</span></div>
+    <div class="calc">max wait = Sat shred → Tue fill = <b>3 days</b> · min = 1 day ✓</div>
+
+    <div class="skwrap">
+    <svg class="sk" viewBox="0 0 640 190" role="img" aria-label="Sketch of the detection bay section with 0.5 m freeboard">
+      <g filter="url(#rough)" stroke="var(--ink)" fill="none" stroke-width="2.2" stroke-linecap="round">
+        <path d="M60 30 L60 160 L480 160 L480 30"/>
+        <path d="M64 160 L64 58 L476 58 L476 160" fill="var(--hi)" fill-opacity=".55"/>
+        <line x1="500" y1="30" x2="500" y2="160"/><line x1="494" y1="30" x2="506" y2="30"/><line x1="494" y1="160" x2="506" y2="160"/>
+        <line x1="540" y1="30" x2="540" y2="58" stroke="var(--red)"/><line x1="534" y1="30" x2="546" y2="30" stroke="var(--red)"/><line x1="534" y1="58" x2="546" y2="58" stroke="var(--red)"/>
+        <path d="M150 8 L 190 50" stroke-dasharray="4 5"/><path d="M150 8 L 110 50" stroke-dasharray="4 5"/>
+        <rect x="140" y="0" width="20" height="10"/>
+      </g>
+      <text x="170" y="12" font-size="14">IR camera</text>
+      <text x="200" y="115" font-size="19">shredded MSW ≤ 3.5 m</text>
+      <text x="507" y="110" font-size="15">wall 4.0 m</text>
+      <text x="552" y="50" font-size="15" style="fill:var(--red)">0.5 m</text>
+      <text x="200" y="182" font-size="15">fire wall both sides</text>
+    </svg>
+    </div>
+    <div class="calc">pile height = 4.0 wall − 0.5 = <b>3.5 m</b> <span class="red">(wall height assumed)</span></div>
+    <div class="calc">floor = 2,060 ÷ 3.5 = <span class="ans">589 m²</span></div>
+    <div class="calc">bays = 2,060 ÷ 450 m³ pile limit = 4.6 → <span class="ans">5 bays</span> of ~412 m³ (~118 m² each)</div>
+    <div class="calc"><span class="lbl">Build 2</span> 1,442 t · 4,121 m³ · 1,177 m² · <b>10 bays</b></div>
+  </div>
+
+  <div class="blk">
+    <div class="ref">§9</div>
+    <h2>Fire water</h2>
+    <div class="calc">6.6 l/min per m³ for 180 min <span class="red">(EA FPP style. Check NIEA)</span></div>
+    <div class="tblwrap">
+    <table class="hand">
+      <tr><th>pile</th><th class="n">m³</th><th class="n">l/min</th><th class="n">m³ water</th></tr>
+      <tr><td>1 detection bay</td><td class="n">412</td><td class="n">2,719</td><td class="n">489</td></tr>
+      <tr><td><b>stage 1 tunnel</b></td><td class="n">1,374</td><td class="n">9,066</td><td class="n"><b>1,632</b> ← governs</td></tr>
+      <tr><td>stage 2 tunnel</td><td class="n">1,097</td><td class="n">7,242</td><td class="n">1,304</td></tr>
+      <tr><td class="red">bay NOT split</td><td class="n red">2,060</td><td class="n red">13,599</td><td class="n red">2,448</td></tr>
+    </table>
+    </div>
+    <p class="note">Splitting the bay into 5 cuts the governing fire water from 2,448 to 1,632 m³. Containment must hold this plus rainfall.</p>
+    <div class="calc"><span class="lbl">heat check</span> max 2 of 3 stage 2 tunnels heating at once → 2 × 85.7 = <b>171 kW</b> (WTT: 257 kW)</div>
+  </div>
+
+  <div class="blk">
+    <div class="ref">§10</div>
+    <h2>Still to confirm</h2>
+    <ul class="tick">
+      <li class="done">WTT mass balance reproduced (all flows within ±1 t)</li>
+      <li class="done">4.5 m fill met at 350 kg/m³ (4.46 / 4.35 m)</li>
+      <li>WTT: 6 days in stage 1 instead of 7</li>
+      <li>Shredder supplier: 46.9 t/h on this MSW (93.8 t/h for Build 2)</li>
+      <li>Loader cycle time (2 min assumed) → loader numbers</li>
+      <li>Bay wall height (4.0 m assumed) → pile 3.5 m</li>
+      <li>NIEA + NIFRS: pile limit (450 m³) and fire-water basis</li>
+      <li>Li-ion cells per tonne: battery audit of incoming MSW (2/t placeholder)</li>
+      <li>Bulky-waste tonnage and where it goes (assumed: not to tunnels)</li>
+    </ul>
+    <div class="sig">
+      <div>Prepared: <span>Claude (for review)</span></div>
+      <div>Checked: <span>&nbsp;</span></div>
+      <div>Approved: <span>&nbsp;</span></div>
+    </div>
+  </div>
+</section>
