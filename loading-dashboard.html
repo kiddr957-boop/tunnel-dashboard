@@ -319,6 +319,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
         <li>Every stage 1 tunnel turns once a week. Batch = annual tonnage ÷ (operating weeks × stage 1 tunnels), which is WTT's 481 t for Build 1.</li>
         <li>Split-day pattern: waste spends <b>6 days</b> in stage 1 (refill day to turning day) and 7 days in stage 2. WTT's rates assume 7 + 7, so real stage 1 losses may be slightly lower.</li>
         <li>Density applies to both the shredded feed and the stage 1 output going into stage 2 (WTT uses 0.35 t/m³ for both). The dead length of 1.5 m is back-calculated from WTT's filling heights.</li>
+        <li>Shredder: MSW is shredded in the set h/yr, spread evenly Mon–Sat in the first part of the shift. The remaining available hours are for bulky waste, which is assumed not to go to the tunnels.</li>
         <li>The detection bay is simulated day by day, first in, first out. Deliveries are shredded the day they arrive. Tunnels are filled late in the shift, so the previous day's shredding has had the full 24 h hold. The bay peak is the morning stock plus that day's shredding. Filling early in the morning instead would need a 2-day hold for a true 24 h and a bigger bay.</li>
         <li>Pile limit and fire-water rate follow the style of the English EA Fire Prevention Plan guidance. Coleraine is regulated by NIEA, so confirm the values that apply. Inputs marked <span style="color:var(--warn)">assumed</span> are not from WTT; replace them with site data.</li>
       </ul>
@@ -371,15 +372,20 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     ]},
     { title: "Operations & equipment", open: false, fields: [
       ["weeks", "Operating weeks", "wk/yr", 52, 1],
-      ["bucket", "Loader bucket (effective)", "m³", 6, 0.5, true],
+      ["bucket", "Loader bucket", "m³", 9, 0.5],
       ["bCycle", "Loader cycle", "min", 2, 0.1, true],
       ["shift", "Loader hours available", "h/day", 10, 0.5, true],
       ["payIn", "Inbound payload", "t/truck", 20, 1, true],
       ["payOut", "Outbound payload", "t/truck", 25, 1, true]
     ]},
+    { title: "Shredder", open: true, fields: [
+      ["mswH", "MSW shredding", "h/yr", 1600, 50],
+      ["shredAvail", "Shredder available", "h/yr", 3120, 50, true]
+    ]},
     { title: "Fire · detection bay", open: true, fields: [
       ["holdH", "Hold before tunnel", "h", 24, 12],
-      ["bayH", "Bay pile height (camera view)", "m", 3, 0.25, true],
+      ["bayWall", "Bay wall height", "m", 4, 0.25, true],
+      ["bayFb", "Pile below wall top", "m", 0.5, 0.1],
       ["pileMax", "Max pile volume", "m³", 450, 10, true],
       ["dwellMax", "Max bay residence", "days", 3, 0.5, true],
       ["liPerT", "Li-ion cells in feed", "cells/t", 2, 0.1, true],
@@ -392,7 +398,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v2";
+  const STORE = "tunnel_plan_v3";
   let state = { build: "b1", v: buildValues("b1") };
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
@@ -482,6 +488,13 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
         trucksIn: dow < WORK ? shredDay / v.payIn : 0, trucksOut: turns.length * tOut / v.payOut, heating };
     });
     r.shredDay = shredDay;
+    // Shredder: MSW limited to mswH per year, the rest of the available hours are for bulky waste
+    r.shred = {
+      rate: v.Q / v.mswH, hDay: v.mswH / (v.weeks * WORK),
+      bulkyH: v.shredAvail - v.mswH, bulkyHday: (v.shredAvail - v.mswH) / (v.weeks * WORK),
+      availHday: v.shredAvail / (v.weeks * WORK)
+    };
+    r.bayH = Math.max(0.1, v.bayWall - v.bayFb);
     r.maxLoaderH = Math.max(...r.days.map(x => x.loaderH));
     r.weekLoaderH = r.days.reduce((a, x) => a + x.loaderH, 0);
     r.peakHeat = Math.max(...r.days.map(x => x.heating));
@@ -492,14 +505,14 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     const li = v.liPerT;
     const bayM3 = r.bay.peak / v.rho;
     const piles = [
-      { n: "Detection bay (peak)", m3: bayM3 },
+      { n: `Detection bay, 1 of ${Math.ceil(bayM3 / v.pileMax)} (fire-separated)`, m3: bayM3 / Math.ceil(bayM3 / v.pileMax) },
       { n: "Stage 1 tunnel", m3: r.s1.m3 },
       { n: "Stage 2 tunnel", m3: r.s2.m3 },
       { n: "Hot-load quarantine (1 truck)", m3: v.payIn / v.rho }
     ].map(x => Object.assign(x, { lpm: x.m3 * v.waterRate, water: x.m3 * v.waterRate * v.waterDur / 1000 }));
     r.fire = {
       li, cellsYr: v.Q * li, cellsDay: shredDay * li, cellsBay: r.bay.peak * li, cellsS1: t1 * li,
-      bayM3, bayArea: bayM3 / v.bayH, bays: Math.ceil(bayM3 / v.pileMax),
+      bayM3, bayArea: bayM3 / r.bayH, bays: Math.ceil(bayM3 / v.pileMax),
       piles, governing: piles.reduce((a, x) => x.m3 > a.m3 ? x : a)
     };
     return r;
@@ -614,9 +627,9 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       kpi("Stage 1 load per tunnel", f0(r.s1.t), "t", `${f0(r.s1.m3)} m³ · fill ${f2(r.s1.fill)} m`),
       kpi("Capacity at " + f1(v.maxFill) + " m", f0(r.s1.cap), "t", `${r.s1.spareYr >= 0 ? "spare" : "short"} ${f0(Math.abs(r.s1.spareYr))} t/yr`),
       kpi("Turn into stage 2", f0(r.s2.t), "t", `${f0(r.s2.m3)} m³ · fill ${f2(r.s2.fill)} m`),
-      kpi("Tunnel moves / week", r.N * 3, "", `${r.N} fills · ${r.N} turns · ${r.N} empties`),
+      kpi("Shredder, MSW", f1(r.shred.rate), "t/h", `${f1(r.shred.hDay)} h/day · ${f1(r.shred.bulkyHday)} h/day left for bulky`),
       kpi("Loader time, peak day", f1(r.maxLoaderH), "h", `${Math.ceil(r.maxLoaderH / v.shift)} loader(s) at ${f0(v.shift)} h`),
-      kpi("Detection bay", f0(r.fire.bayM3), "m³", `${f0(r.bay.peak)} t · ${f0(r.fire.bayArea)} m² at ${f1(v.bayH)} m`)
+      kpi("Detection bay", f0(r.fire.bayM3), "m³", `${f0(r.bay.peak)} t · ${f0(r.fire.bayArea)} m² at ${f1(r.bayH)} m`)
     ].join("");
   }
 
@@ -630,10 +643,12 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     if (v.rho > 0.35 + 1e-9) add("info", `At ${f0(v.rho * 1000)} kg/m³ the tunnels can't be filled to ${f2(v.maxFill)} m from the ${f0(v.Q)} t/yr supply: the pile sits at ${f2(r.s1.fill)} m. Filling to ${f2(v.maxFill)} m every time would only work with more feed or fewer turns.`);
     add("ok", `Second tunnel available for turning: each turn goes into a stage 2 tunnel that was emptied to output earlier the same day (${r.plan.map(p => `${T(p.s1)}→${T(p.s2)} ${DAYS[p.turn]}`).join(", ")}).`);
     if (r.res1 < 7) add("warn", `Stage 1 residence is ${r.res1} days (refill to turn) against WTT's 7. WTT's evaporation and degradation for stage 1 may be slightly optimistic. Confirm with WTT that 6 + 7 days still meets the stage 2 output spec.`);
-    if (r.maxLoaderH > v.shift) add("crit", `Peak-day loader time ${f1(r.maxLoaderH)} h exceeds the ${f1(v.shift)} h available. That needs ${Math.ceil(r.maxLoaderH / v.shift)} loaders. (Bucket size and cycle time are assumed.)`);
+    if (r.maxLoaderH > v.shift) add("crit", `Peak-day loader time ${f1(r.maxLoaderH)} h exceeds the ${f1(v.shift)} h available. That needs ${Math.ceil(r.maxLoaderH / v.shift)} loaders. (Loader cycle time is assumed.)`);
     else add("ok", `Loader time peaks at ${f1(r.maxLoaderH)} h/day. The split plan spreads the work evenly: fill days ${f1(r.days[1].loaderH)} h, turn days ${f1(r.days[0].loaderH)} h.`);
-    if (r.fire.bayM3 > v.pileMax) add("warn", `Detection bay peaks at ${f0(r.fire.bayM3)} m³, above the ${f0(v.pileMax)} m³ pile limit. Split into ${r.fire.bays} fire-separated bays (${f0(r.fire.bayArea)} m² floor in total at ${f1(v.bayH)} m pile height).`);
+    if (r.fire.bayM3 > v.pileMax) add("warn", `Detection bay peaks at ${f0(r.fire.bayM3)} m³, above the ${f0(v.pileMax)} m³ pile limit. Split into ${r.fire.bays} fire-separated bays (${f0(r.fire.bayArea)} m² floor in total at ${f1(r.bayH)} m pile height).`);
     if (r.bay.maxAge > v.dwellMax) add("warn", `Oldest shredded waste sits ${r.bay.maxAge} days in the bay (the Saturday shred held until the next fill). That's over the ${f1(v.dwellMax)}-day target.`);
+    if (r.shred.bulkyH <= 0) add("crit", `MSW shredding (${f0(v.mswH)} h/yr) uses all ${f0(v.shredAvail)} available shredder hours. There's no time left for bulky waste.`);
+    else add("info", `Shredder: ${f0(v.Q)} t/yr MSW in ${f0(v.mswH)} h needs ${f1(r.shred.rate)} t/h average throughput (${f1(r.shred.hDay)} h/day, Mon–Sat). That leaves ${f0(r.shred.bulkyH)} h/yr (${f1(r.shred.bulkyHday)} h/day) for bulky waste. Confirm ${f1(r.shred.rate)} t/h with the shredder supplier for this feed.`);
     add("ok", `Every tunnel fill has had at least ${r.bay.minAge} day(s) of IR watch in the detection bay (hold required: ${f0(v.holdH)} h).`);
     if (r.mb.heatEvapRaw > r.mb.heatEvap + 0.5) add("crit", "The additional heat would evaporate more water than stage 2 still contains. The heat evaporation has been capped.");
     add("info", `Heat: WTT's method sizes ${f0(v.kw * r.N)} kW (all stage 2 tunnels heating). With this plan at most ${r.peakHeat} of ${r.N} heat at once, so the peak is ${f0(r.peakKw)} kW.`);
@@ -762,7 +777,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     const fr = r.fire, b = r.bay;
     document.getElementById("fireKpis").innerHTML = [
       kpi("Bay peak stock", f0(b.peak), "t", `${f0(fr.bayM3)} m³ at ${f0(v.rho * 1000)} kg/m³`),
-      kpi("Bay floor area", f0(fr.bayArea), "m²", `pile ${f1(v.bayH)} m high · ${fr.bays} bay${fr.bays > 1 ? "s" : ""} ≤ ${f0(v.pileMax)} m³`),
+      kpi("Bay floor area", f0(fr.bayArea), "m²", `pile ${f1(r.bayH)} m high · ${fr.bays} bay${fr.bays > 1 ? "s" : ""} ≤ ${f0(v.pileMax)} m³`),
       kpi("Watch time before tunnel", b.minAge, b.minAge === 1 ? "day" : "days", `min · max ${b.maxAge} d (hold ${f0(v.holdH)} h)`),
       kpi("Li-ion cells shredded / day", f0(fr.cellsDay), "", `${f0(fr.cellsBay)} in bay at peak`),
       kpi("Fire water, governing pile", f0(fr.governing.water), "m³", `${f0(fr.governing.lpm)} l/min · ${fr.governing.n.toLowerCase()}`)
@@ -812,11 +827,11 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       `<thead><tr><th>Pile / compartment</th><th class="n">m³</th><th class="n">vs limit</th><th class="n">l/min</th><th class="n">Water m³</th></tr></thead><tbody>` +
       fr.piles.map(p => `<tr><td>${p.n}</td><td class="n">${f0(p.m3)}</td><td class="n">${p.m3 > v.pileMax ? `<span class="pill warn">! ${f1(p.m3 / v.pileMax)}×</span>` : '<span class="pill ok">✓ ok</span>'}</td><td class="n">${f0(p.lpm)}</td><td class="n">${f0(p.water)}</td></tr>`).join("") + `</tbody>`;
     document.getElementById("fireNote").innerHTML =
-      `Split into ${fr.bays} bays, the largest single bay is ≤ ${f0(v.pileMax)} m³ (${f0(v.pileMax * v.waterRate)} l/min). The tunnels are then the largest piles on site; their case in the fire plan is compartmentation (doors shut, aeration stopped, irrigation spigots as deluge). Containment must hold the governing fire-water volume plus rainfall.`;
+      `Whole bay stock is ${f0(fr.bayM3)} m³. If it isn't split into fire-separated bays, it governs at ${f0(fr.bayM3 * v.waterRate)} l/min (${f0(fr.bayM3 * v.waterRate * v.waterDur / 1000)} m³). Split into ${fr.bays} bays, each is ≤ ${f0(v.pileMax)} m³ and the tunnels become the largest piles on site; their case in the fire plan is compartmentation (doors shut, aeration stopped, irrigation spigots as deluge). Containment must hold the governing fire-water volume plus rainfall.`;
 
     const rows = [
-      ["Reception & shredder", `${f0(r.shredDay)} t/day · ${f1(r.shredDay / v.payIn)} trucks`, "Pick out visible batteries and vapes before shredding; spark and flame detection with an extinguishing system at the shredder discharge; quarantine bay for one hot truckload (" + f0(v.payIn / v.rho) + " m³), away from the building"],
-      ["Detection bay (new)", `${f0(fr.bayM3)} m³ peak · ≥ ${f0(v.holdH)} h hold`, `Keep piles ≤ ${f1(v.bayH)} m so IR cameras see the whole surface; ${fr.bays} bays ≤ ${f0(v.pileMax)} m³ with fire walls; automatic monitor/deluge linked to the cameras; loader access from two sides so a hot spot can be dug out and taken to quarantine; first in, first out (the dashboard's plan never loads material that hasn't reached the hold time)`],
+      ["Reception & shredder", `${f0(r.shredDay)} t/day in ${f1(r.shred.hDay)} h · ${f1(r.shred.rate)} t/h`, "Pick out visible batteries and vapes before shredding; spark and flame detection with an extinguishing system at the shredder discharge; quarantine bay for one hot truckload (" + f0(v.payIn / v.rho) + " m³), away from the building"],
+      ["Detection bay (new)", `${f0(fr.bayM3)} m³ peak · ≥ ${f0(v.holdH)} h hold`, `Keep piles ≤ ${f1(r.bayH)} m, which is ${f1(v.bayFb)} m below the ${f1(v.bayWall)} m wall top, so IR cameras see the whole surface and burning material can't spill over; ${fr.bays} bays ≤ ${f0(v.pileMax)} m³ with fire walls; automatic monitor/deluge linked to the cameras; loader access from two sides so a hot spot can be dug out and taken to quarantine; first in, first out (the dashboard's plan never loads material that hasn't reached the hold time)`],
       ["Bay → stage 1 fill", `${f0(r.s1.t)} t per fill · ${f0(fr.cellsS1)} cells`, "Take material from the cleared face only; check with a handheld thermal camera before each fill; stop filling on any camera alarm"],
       ["Stage 1 → stage 2 turn", `${r.N} turns/week`, "The receiving stage 2 tunnel must be empty and inspected before the turn starts (step ①). Turning is also a second chance to spot hot spots: pile-temperature probes and a rate-of-rise alarm"],
       ["Stage 2 (heated)", `${f0(v.kw)} kW per tunnel · ${v.hDays} days`, "High-temperature trip on the heater, separate from the process control; cut heat and aeration on any fire alarm"],
@@ -901,6 +916,8 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["Stage 1 filling height (m)", a.s1.fill, b.s1.fill, 2],
       ["Loader time, peak day (h)", a.maxLoaderH, b.maxLoaderH, 1],
       ["Loaders needed", Math.ceil(a.maxLoaderH / v.shift), Math.ceil(b.maxLoaderH / v.shift), 0],
+      ["Shredder MSW rate (t/h)", a.shred.rate, b.shred.rate, 1],
+      ["Shredder hours left for bulky (h/yr)", a.shred.bulkyH, b.shred.bulkyH, 0],
       ["Outbound trucks / week", a.days.reduce((s, x) => s + x.trucksOut, 0), b.days.reduce((s, x) => s + x.trucksOut, 0), 1],
       ["Detection bay peak (m³)", a.fire.bayM3, b.fire.bayM3, 0],
       ["Detection bay floor (m²)", a.fire.bayArea, b.fire.bayArea, 0],
