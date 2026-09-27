@@ -1,5 +1,5 @@
 <title>Coleraine Tunnel PFD</title>
-<meta name="description" content="Blueprint process flow sheet for the Coleraine tunnel composting plant, Build 1: reception, battery picking, shredding, detection bays, stage 1 and 2 tunnels, bulky line and stream table.">
+<meta name="description" content="Blueprint process flow sheet for the Coleraine tunnel composting plant, Build 1: reception, shredding with Blazequel outfeed detection, detection bays, stage 1 and 2 tunnels, bulky line and stream table.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap">
 <style>
@@ -82,7 +82,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
   </header>
 
   <div class="sheet">
-  <svg class="pfd" viewBox="0 0 1400 830" role="img" aria-label="Process flow sheet: MSW reception, battery picking, shredder, detection bays, stage 1 and stage 2 tunnels, output, bulky shredding line, fire water and exhaust">
+  <svg class="pfd" viewBox="0 0 1400 830" role="img" aria-label="Process flow sheet: MSW reception, shredder with Blazequel outfeed-belt detection, detection bays, stage 1 and stage 2 tunnels, output, bulky shredding line, fire water and exhaust">
     <defs>
       <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8f1ff"/></marker>
       <marker id="arrs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9ec3f0"/></marker>
@@ -121,24 +121,12 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <text x="243" y="280" font-size="11" text-anchor="middle" class="amber">1 truck · 57 m³ · outside</text>
     </g>
 
-    <!-- Battery pick -->
-    <path class="flow" d="M308 141 H350"/>
-    <g>
-      <rect class="eq-fill" x="352" y="112" width="104" height="58"/>
-      <path class="eq" d="M362 158 h84 M372 158 v-18 M392 158 v-18 M412 158 v-18 M432 158 v-18"/>
-      <text x="404" y="100" font-size="13" font-weight="700" text-anchor="middle">PK-01 BATTERY PICK</text>
-      <text x="404" y="132" font-size="11" class="soft" text-anchor="middle">hand pick · vapes</text>
-    </g>
-    <path class="flow" d="M404 170 V226"/>
-    <g class="tag"><circle cx="420" cy="198" r="11"/><text x="420" y="202">2</text></g>
-    <g>
-      <rect class="eq" x="352" y="228" width="104" height="46"/>
-      <text x="404" y="248" font-size="12" font-weight="600" text-anchor="middle">BATTERIES</text>
-      <text x="404" y="264" font-size="11" class="soft" text-anchor="middle">≤ 75 t/yr to recycler</text>
-    </g>
+    <!-- Feed to shredder (no battery picking station) -->
+    <path class="flow" d="M308 141 H500"/>
+    <text x="404" y="162" font-size="11" class="soft" text-anchor="middle">loader feed</text>
+    <text x="404" y="176" font-size="11" class="soft" text-anchor="middle">no picking station</text>
 
     <!-- Shredder -->
-    <path class="flow" d="M456 141 H500"/>
     <g class="tag"><circle cx="478" cy="124" r="11"/><text x="478" y="128">3</text></g>
     <g>
       <path class="eq-fill" d="M502 104 H622 L608 180 H516 Z"/>
@@ -146,11 +134,11 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <path class="eq" d="M532 140 l6 -8 l6 8 l6 -8 M568 140 l6 8 l6 -8 l6 8"/>
       <text x="562" y="96" font-size="13" font-weight="700" text-anchor="middle">SH-01 MSW ONLY</text>
       <text x="562" y="198" font-size="11" class="soft" text-anchor="middle">46.9 t/h · 1,600 h · 12:00–17:08</text>
-      <text x="562" y="212" font-size="11" class="amber" text-anchor="middle">SD-01 exit-belt spark/IR + auto quench</text>
+      <text x="562" y="212" font-size="11" class="amber" text-anchor="middle">BQ-01 Blazequel on outfeed belt</text>
     </g>
 
-    <!-- Exit-belt detection -->
-    <g><rect x="628" y="150" width="26" height="18" fill="none" stroke="#ffd166" stroke-width="1.5"/><text x="641" y="163" font-size="10" font-weight="700" text-anchor="middle" class="amber">SD</text></g>
+    <!-- Blazequel fire detection on the outfeed belt -->
+    <g><rect x="628" y="150" width="26" height="18" fill="none" stroke="#ffd166" stroke-width="1.5"/><text x="641" y="163" font-size="10" font-weight="700" text-anchor="middle" class="amber">BQ</text></g>
     <g class="ld"><rect x="464" y="150" width="28" height="16" rx="2"/><text x="478" y="162">L2</text></g>
 
     <!-- Detection bays -->
@@ -344,7 +332,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <text x="1042" y="742" font-size="11" class="soft">CLIENT</text><text x="1090" y="742" font-size="12" font-weight="600">RIVERRIDGE</text>
       <text x="1214" y="742" font-size="11" class="soft">BASIS</text><text x="1256" y="742" font-size="12" font-weight="600">WTT 26029 R1</text>
       <text x="1042" y="772" font-size="11" class="soft">DWG</text><text x="1076" y="772" font-size="12" font-weight="600" class="mono">26029-PFD-001</text>
-      <text x="1214" y="772" font-size="11" class="soft">REV</text><text x="1244" y="772" font-size="12" font-weight="600" class="mono">B · 27/09/26</text>
+      <text x="1214" y="772" font-size="11" class="soft">REV</text><text x="1244" y="772" font-size="12" font-weight="600" class="mono">C · 27/09/26</text>
       <text x="1042" y="798" font-size="11" class="soft">DRAWN</text><text x="1086" y="798" font-size="11">Claude (for review)</text>
       <text x="1214" y="798" font-size="11" class="soft">CHK</text><text x="1244" y="798" font-size="11">______ · SCALE NTS</text>
     </g>
@@ -403,8 +391,8 @@ ol.notes b { color: var(--amber); font-weight: 600; }
         <thead><tr><th>No.</th><th>Stream</th><th class="n">t/yr</th><th class="n">t/week</th><th class="n">DS %</th><th class="n">water t/yr</th><th class="n">m³/yr</th></tr></thead>
         <tbody>
           <tr><td class="no">1</td><td>MSW delivered</td><td class="n">75,000</td><td class="n">1,442</td><td class="n">63.0</td><td class="n">27,750</td><td class="n">214,286</td></tr>
-          <tr><td class="no">2</td><td>Batteries &amp; vapes picked (1 kg/t max.)</td><td class="n">≤ 75</td><td class="n">≤ 1.4</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
-          <tr><td class="no">3</td><td>Picked MSW to shredder</td><td class="n">75,000</td><td class="n">1,442</td><td class="n">63.0</td><td class="n">27,750</td><td class="n">–</td></tr>
+          <tr><td class="no">2</td><td><i>Deleted rev C (no picking)</i></td><td class="n">–</td><td class="n">–</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
+          <tr><td class="no">3</td><td>MSW to shredder</td><td class="n">75,000</td><td class="n">1,442</td><td class="n">63.0</td><td class="n">27,750</td><td class="n">–</td></tr>
           <tr><td class="no">4</td><td>Shredded MSW to detection bays</td><td class="n">75,000</td><td class="n">1,442</td><td class="n">63.0</td><td class="n">27,750</td><td class="n">214,286</td></tr>
           <tr><td class="no">5</td><td>Bays → stage 1 (3 × 481 t/wk)</td><td class="n">75,000</td><td class="n">1,442</td><td class="n">63.0</td><td class="n">27,750</td><td class="n">214,286</td></tr>
           <tr><td class="no">6</td><td>Stage 1 off-gas: water + degradation</td><td class="n">15,090</td><td class="n">290</td><td class="n">–</td><td class="n">13,022</td><td class="n">–</td></tr>
@@ -427,7 +415,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
         <li>Mass balance from WTT 26029 rev 1 (3-tunnel sheet). All flows within ±1 t.</li>
         <li>Turning always goes into a <b>different, emptied</b> tunnel: L2 empties T4 ⑩, then L1 turns T1→T4 ⑦. T1 is refilled at 07:00 the next working day ⑤.</li>
         <li><b>SH-01 takes MSW only</b> (46.9 t/h, 12:00–17:08). <b>SH-02 takes bulky only</b> and must reach ≥ 38 t/h to fit 1,600 h. Each machine backs up the other.</li>
-        <li>SD-01 exit-belt spark/IR detection with automatic quench, as at Portadown, catches ignitions at the shredder.</li>
+        <li><b>No battery picking.</b> BQ-01 Blazequel fire detection on the SH-01 outfeed belt (as at Portadown) catches ignitions at the shredder. The detection bays then catch delayed ignitions. All batteries (~75 t/yr at 1 kg/t) pass to the bays, tunnels and output.</li>
         <li>Detection bays: 4 × 343 m³ in <b>2 pairs, one pair per shredding day</b>. Shredding in the afternoon and filling in the morning keeps the peak to one batch (481 t) and gives ≥ 13.9 h of watch.</li>
         <li><b>2 loaders</b> (9 m³): L1 tunnels ~1,430 h/yr, L2 shredder feed + stage 2 emptying ~1,360 h/yr. Both are within 1,600 h (2-minute cycle assumed).</li>
         <li>Heat plant sized to the staggered peak, 171 kW plus margin, not WTT's 257 kW. Fire water 1,632 m³ (stage 1 tunnel governs), with containment to match.</li>
