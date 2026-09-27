@@ -389,7 +389,8 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["shredAvail", "SH-01 available", "h/yr", 1600, 50]
     ]},
     { title: "Secondary processing", open: true, fields: [
-      ["spRate", "Line throughput", "t/h", 25, 1],
+      ["spRate", "Line rated throughput", "t/h", 25, 1],
+      ["spH", "Line running hours", "h/yr", 1600, 50],
       ["spStart", "Line starts", "hh (24 h)", 13, 0.5, true],
       ["hopperM3", "Dosing hopper volume", "m³", 60, 5, true]
     ]},
@@ -412,7 +413,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v12";
+  const STORE = "tunnel_plan_v13";
   let state = { build: "b1", v: buildValues("b1") };
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
@@ -525,7 +526,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     // Output route: stage 2 → OS-01 storage bay → DH-01 dosing hopper → SP-01 secondary processing
     {
       const emptyH = Math.ceil(r.tOut / v.rho / v.bucket) * v.bCycle / 60;
-      const spRate = v.spRate, spH = r.mb.out2 / spRate, spHday = spH / (v.weeks * WORK);
+      const spH = v.spH, spRate = r.mb.out2 / spH, spHday = spH / (v.weeks * WORK); // rate the line must average to clear the output
       let cum = 0, lo = Infinity, hi = -Infinity;
       for (let h = 7 * 24; h < 21 * 24; h++) {
         const d = Math.floor(h / 24) % 7, hod = h % 24;
@@ -698,7 +699,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["Shredding", r.shred.sep ? `SH-01 for MSW only: ${f1(r.shred.rate)} t/h, ${hh(v.shredStart)}–${hh(v.shredStart + b.window)} Mon–Sat, Blazequel fire detection on the outfeed belt (no battery picking station). SH-02 for bulky waste: ≥ ${f0(v.bulkyT / v.sh2Avail)} t/h (${f0(r.shred.bulkyH)} h at ${f0(v.bulkyRate)} t/h). Each machine backs up the other.` : `One shredder for MSW and bulky waste: see the shredder warning.`],
       ["Detection bays", `${bays} bays of ~${f0(perBay)} m³. Each day's shredding goes into its own group of bays. Pile ${f1(r.bayH)} m (${f1(v.bayFb)} m below the ${f1(v.bayWall)} m wall), ${f0(fr.bayArea)} m² in total. Hold ≥ ${f0(v.holdH)} h; actual watch ${f0(b.minAge)}–${f0(b.maxAge)} h. IR cameras with automatic monitor/deluge, and a quarantine bay for one truckload.`],
       ["Daily rhythm", `07:00 L1 fills (Tue/Thu/Sat) or turns (Mon/Wed/Fri). ${hh(v.shredStart)} SH-01 shreds into the emptied bays. Morning loading and afternoon shredding never work in the same bays at the same time.`],
-      ["Output route", `Stage 2 → <b>OS-01 storage bay</b> (peak ${f0(r.os.peak)} t / ${f0(r.os.m3)} m³, ${r.os.bays} bay${r.os.bays > 1 ? "s" : ""}, ${f0(r.os.area)} m² at ${f1(r.bayH)} m) → <b>DH-01 dosing hopper</b> (${f0(v.hopperM3)} m³ ≈ ${f0(r.os.hopperMin)} min of feed) → <b>SP-01 secondary processing</b> at ${f1(r.os.spRate)} t/h, ${hh(v.spStart)}–${hh(v.spStart + r.os.spHday)}. A tunnel can't go straight to the hopper: emptying runs at ~${f0(r.os.emptyRate)} t/h so the turn can start, against ${f1(r.os.spRate)} t/h on the line.`],
+      ["Output route", `Stage 2 → <b>OS-01 storage bay</b> (peak ${f0(r.os.peak)} t / ${f0(r.os.m3)} m³, ${r.os.bays} bay${r.os.bays > 1 ? "s" : ""}, ${f0(r.os.area)} m² at ${f1(r.bayH)} m) → <b>DH-01 dosing hopper</b> (${f0(v.hopperM3)} m³ ≈ ${f0(r.os.hopperMin)} min of feed) → <b>SP-01 secondary processing</b> ${f0(v.spH)} h/yr, needs ${f1(r.os.spRate)} t/h average (rated ${f0(v.spRate)} t/h${v.spRate < r.os.spRate ? " ✗" : " ✓"}), ${hh(v.spStart)}–${hh(v.spStart + r.os.spHday)}. A tunnel can't go straight to the hopper: emptying runs at ~${f0(r.os.emptyRate)} t/h so the turn can start, against ${f1(r.os.spRate)} t/h on the line.`],
       ["Loaders", (() => { const n = r.loaderN, per = r.loaderTotal / Math.max(1, n - 1);
         return `${f0(r.loaderTotal)} h/yr of loader work (${f0(v.bucket)} m³): tunnels ${f0(r.L1)} h, shredder feed + stage 2 emptying ${f0(r.L2)} h, hopper feed ${f0(r.os.feedH)} h. ` +
           (n >= 3 && per <= v.loaderYr * 1.1 ? `<b>${n - 1} loaders at ~${f0(per)} h each</b> (${f0((per / v.loaderYr - 1) * 100)}% over ${f0(v.loaderYr)} h) or ${n} loaders.` : `<b>${n} loader${n > 1 ? "s" : ""}</b> at ${f0(v.loaderYr)} h each.`); })()],
@@ -723,8 +724,9 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       if (n >= 3 && per <= v.loaderYr * 1.1) add("warn", `Loaders: ${f0(r.loaderTotal)} h/yr in total (tunnels ${f0(r.L1)} h, shredder feed + emptying ${f0(r.L2)} h, dosing hopper feed ${f0(r.os.feedH)} h). ${n - 1} loaders would each run ~${f0(per)} h, ${f0((per / v.loaderYr - 1) * 100)}% over ${f0(v.loaderYr)} h. Run them slightly longer or add one more. (Cycle time is assumed.)`);
       else if (n > 2) add("crit", `Loaders: ${f0(r.loaderTotal)} h/yr in total needs ${n} loaders at ${f0(v.loaderYr)} h each (tunnels ${f0(r.L1)} h, shredder feed + emptying ${f0(r.L2)} h, hopper feed ${f0(r.os.feedH)} h).`);
       else add("ok", `Loaders: ${f0(r.loaderTotal)} h/yr in total fits ${n} loader${n > 1 ? "s" : ""} at ${f0(v.loaderYr)} h.`); }
-    if (r.os.spH > v.loaderYr) add("warn", `SP-01 at ${f0(v.spRate)} t/h needs ${f0(r.os.spH)} h/yr to process ${f0(r.mb.out2)} t (${f1(r.os.spHday)} h/day Mon–Sat, ${hh(v.spStart)}–${hh(v.spStart + r.os.spHday)}). That's ${f0(r.os.spH - 1600)} h more than a 1,600 h year, so plan a longer line shift. Build 2 at the same rate would need ${f0(2 * r.os.spH)} h: a second line or a faster one.`);
-    add("info", `Output: stage 2 empties ${f0(r.tOut)} t per tunnel into OS-01 at ~${f0(r.os.emptyRate)} t/h. SP-01 draws ${f0(r.mb.out2 / (v.weeks * WORK))} t/day at ${f1(r.os.spRate)} t/h through DH-01. OS-01 peaks at ${f0(r.os.peak)} t (${f0(r.os.m3)} m³), so ${r.os.bays} bay${r.os.bays > 1 ? "s" : ""} ≤ ${f0(v.pileMax)} m³. The output still carries batteries, so it needs IR and deluge like the detection bays. (Line hours, hopper size and output density are assumed.)`);
+    if (v.spRate * v.spH < r.mb.out2 - 1) add("crit", `SP-01: rated ${f0(v.spRate)} t/h × ${f0(v.spH)} h = ${f0(v.spRate * v.spH)} t/yr, short of the ${f0(r.mb.out2)} t/yr stage 2 output by ${f0(r.mb.out2 - v.spRate * v.spH)} t. Either the line averages <b>${f1(r.mb.out2 / v.spH)} t/h</b> in ${f0(v.spH)} h, or it runs <b>${f0(r.mb.out2 / v.spRate)} h/yr</b> at ${f0(v.spRate)} t/h (${f1(r.mb.out2 / v.spRate / (v.weeks * WORK))} h/day).${r.N === 3 ? " Build 2 doubles this." : ""}`);
+    else add("ok", `SP-01: ${f0(v.spRate)} t/h × ${f0(v.spH)} h = ${f0(v.spRate * v.spH)} t/yr covers the ${f0(r.mb.out2)} t/yr output.`);
+    add("info", `Output: stage 2 empties ${f0(r.tOut)} t per tunnel into OS-01 at ~${f0(r.os.emptyRate)} t/h. SP-01 draws ${f0(r.mb.out2 / (v.weeks * WORK))} t/day at ${f1(r.os.spRate)} t/h through DH-01. OS-01 peaks at ${f0(r.os.peak)} t (${f0(r.os.m3)} m³), so ${r.os.bays} bay${r.os.bays > 1 ? "s" : ""} ≤ ${f0(v.pileMax)} m³. The output still carries batteries, so it needs IR and deluge like the detection bays. (Hopper size and output density are assumed.)`);
     if (r.fire.bayM3 > v.pileMax) add("info", `Detection bay peaks at ${f0(r.fire.bayM3)} m³, above the ${f0(v.pileMax)} m³ pile limit. Split into ${r.fire.bays} fire-separated bays (${f0(r.fire.bayArea)} m² floor in total at ${f1(r.bayH)} m pile height).`);
     if (r.bay.maxAge / 24 > v.dwellMax) add("warn", `Oldest shredded waste sits ${f0(r.bay.maxAge)} h (${f1(r.bay.maxAge / 24)} days) in the bay: Saturday's shredding waits over Sunday. That's over the ${f1(v.dwellMax)}-day target.`);
     if (r.shred.sep) {
