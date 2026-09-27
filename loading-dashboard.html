@@ -320,7 +320,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
         <li>Split-day pattern: waste spends <b>6 days</b> in stage 1 (refill day to turning day) and 7 days in stage 2. WTT's rates assume 7 + 7, so real stage 1 losses may be slightly lower.</li>
         <li>Density applies to both the shredded feed and the stage 1 output going into stage 2 (WTT uses 0.35 t/m³ for both). The dead length of 1.5 m is back-calculated from WTT's filling heights.</li>
         <li>Shredder: MSW is shredded in the set h/yr, spread evenly Mon–Sat in the first part of the shift. The remaining available hours are for bulky waste, which is assumed not to go to the tunnels.</li>
-        <li>The detection bay is simulated day by day, first in, first out. Deliveries are shredded the day they arrive. Tunnels are filled late in the shift, so the previous day's shredding has had the full 24 h hold. The bay peak is the morning stock plus that day's shredding. Filling early in the morning instead would need a 2-day hold for a true 24 h and a bigger bay.</li>
+        <li>The detection bay is simulated hour by hour, first in, first out. MSW is shredded evenly from the set start time over the daily MSW hours (Mon–Sat). Each refill removes a full batch at the fill start time and may only take material that has had the full hold. The bay size is the highest stock at any hour.</li>
         <li>Pile limit and fire-water rate follow the style of the English EA Fire Prevention Plan guidance. Coleraine is regulated by NIEA, so confirm the values that apply. Inputs marked <span style="color:var(--warn)">assumed</span> are not from WTT; replace them with site data.</li>
       </ul>
     </section>
@@ -384,7 +384,9 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["shredAvail", "Shredder available (MSW + bulky)", "h/yr", 1600, 50]
     ]},
     { title: "Fire · detection bay", open: true, fields: [
-      ["holdH", "Hold before tunnel", "h", 24, 12],
+      ["holdH", "Hold before tunnel", "h", 12, 1],
+      ["shredStart", "MSW shredding starts", "hh (24 h)", 6, 0.5],
+      ["fillStart", "Tunnel fill starts", "hh (24 h)", 7, 1],
       ["bayWall", "Bay wall height", "m", 4.3, 0.1],
       ["bayFb", "Pile below wall top", "m", 0.5, 0.1],
       ["pileMax", "Max pile volume", "m³", 450, 10, true],
@@ -400,7 +402,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v8";
+  const STORE = "tunnel_plan_v9";
   let state = { build: "b1", v: buildValues("b1") };
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
@@ -416,6 +418,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const tr = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
   const T = i => "T" + (i + 1);
+  const hh = x => { const m = Math.round(((x % 24) + 24) % 24 * 60); return String(Math.floor(m / 60) % 24).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); };
 
   // ---------- Model ----------
   function compute(v) {
@@ -524,44 +527,53 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     return r;
   }
 
-  // Detection bay: FIFO, material becomes eligible holdDays after the day it was shredded.
-  // Binary-search the smallest standing stock that never starves a refill, then report steady-state peak and ages.
+  // Detection bay, simulated hour by hour, first in first out.
+  // MSW is shredded evenly over a daily window from shredStart (Mon–Sat); each refill removes a whole batch at fillStart
+  // and may only take material that has been in the bay for at least holdH hours. Binary-search the smallest standing
+  // stock that never starves a refill, then report the steady-state peak and the age of material at loading.
   function baySim(v, r, shredDay, t1) {
-    const hold = Math.max(0, Math.ceil(v.holdH / 24 - 1e-9));
-    const D = 56;
-    const demand = d => r.plan.filter(p => p.refill === d % 7).length * t1;
-    const shred = d => (d % 7) < WORK ? shredDay : 0;
+    const W = Math.max(0.25, r.shred.mswH > 0 ? r.shred.hDay : v.shredAvail / (v.weeks * WORK));
+    const rate = shredDay / W, H = 8 * 7 * 24, REC = 5 * 7 * 24;
+    const s0 = v.shredStart, fh = Math.round(v.fillStart);
+    const fills = d => r.plan.filter(p => p.refill === d % 7).length;
+    const shredIn = h => {
+      const d = Math.floor(h / 24), hod = h % 24;
+      if (d % 7 >= WORK) return 0;
+      return rate * Math.max(0, Math.min(hod + 1, s0 + W) - Math.max(hod, s0));
+    };
     function run(S0, record) {
-      const lots = [{ t: S0, day: -99 }];
+      const lots = [{ t: S0, at: -1e9 }];
       const out = { ok: true, peak: 0, maxAge: 0, minAge: Infinity, byDay: [] };
-      for (let d = 0; d < D; d++) {
-        const start = lots.reduce((a, l) => a + l.t, 0);
-        let need = demand(d);
-        const eligible = lots.filter(l => d - l.day >= hold).reduce((a, l) => a + l.t, 0);
-        if (eligible + 1e-6 < need) { out.ok = false; if (!record) return out; }
-        // Cleared vs holding at the start of the day (before loading)
-        const cleared0 = eligible, holding0 = start - eligible;
-        while (need > 1e-9 && lots.length && d - lots[0].day >= hold) {
-          const lot = lots[0], take = Math.min(lot.t, need);
-          if (record && d >= 35 && lot.day > -99) { out.maxAge = Math.max(out.maxAge, d - lot.day); out.minAge = Math.min(out.minAge, d - lot.day); }
-          lot.t -= take; need -= take;
-          if (lot.t <= 1e-9) lots.shift();
+      let day = null;
+      for (let h = 0; h < H; h++) {
+        const d = Math.floor(h / 24), hod = h % 24;
+        if (hod === fh && fills(d)) {
+          let need = fills(d) * t1;
+          const elig = lots.filter(l => h - l.at >= v.holdH - 1e-9).reduce((a, l) => a + l.t, 0);
+          if (elig + 1e-6 < need) { out.ok = false; if (!record) return out; }
+          while (need > 1e-9 && lots.length && h - lots[0].at >= v.holdH - 1e-9) {
+            const lot = lots[0], take = Math.min(lot.t, need);
+            if (record && h >= REC && lot.at > -1e8) { out.maxAge = Math.max(out.maxAge, h - lot.at); out.minAge = Math.min(out.minAge, h - lot.at); }
+            lot.t -= take; need -= take;
+            if (lot.t <= 1e-9) lots.shift();
+          }
         }
-        const s = shred(d);
-        if (s) lots.push({ t: s, day: d });
-        // Peak within the day: morning stock plus the whole day's shredding (conservative)
-        const peak = start + s;
-        if (record && d >= 35) {
-          out.peak = Math.max(out.peak, peak);
-          if (d < 42) out.byDay.push({ dow: d % 7, holding: holding0 + s, cleared: cleared0, peak, loaded: demand(d), shred: s });
+        const sIn = shredIn(h);
+        if (sIn > 0) lots.push({ t: sIn, at: h + 1 }); // stamped at the end of the hour (conservative)
+        if (record && h >= REC && h < REC + 168) {
+          const stock = lots.reduce((a, l) => a + l.t, 0);
+          const elig = lots.filter(l => h + 1 - l.at >= v.holdH - 1e-9).reduce((a, l) => a + l.t, 0);
+          if (!day || day.dow !== d % 7) { day = { dow: d % 7, peak: -1, holding: 0, cleared: 0, loaded: fills(d) * t1, shred: d % 7 < WORK ? shredDay : 0 }; out.byDay.push(day); }
+          if (stock > day.peak) { day.peak = stock; day.cleared = elig; day.holding = stock - elig; }
         }
+        if (record && h >= REC) out.peak = Math.max(out.peak, lots.reduce((a, l) => a + l.t, 0));
       }
       return out;
     }
     let lo = 0, hi = 30 * Math.max(t1, 1);
     for (let k = 0; k < 40; k++) { const mid = (lo + hi) / 2; if (run(mid, false).ok) hi = mid; else lo = mid; }
     const res = run(hi, true);
-    res.hold = hold;
+    res.window = W;
     return res;
   }
 
@@ -655,13 +667,13 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     else if (r.maxLoaderH > r.shiftDay) add("warn", `Annual loader hours fit (${f0(r.loaderYrNeed)} of ${f0(v.loaderYr)} h), but turn days need ${f1(r.maxLoaderH)} h against a ${f1(r.shiftDay)} h daily average. Plan longer shifts on Mon/Wed/Fri.`);
     else add("ok", `Loader time peaks at ${f1(r.maxLoaderH)} h/day. The split plan spreads the work evenly: fill days ${f1(r.days[1].loaderH)} h, turn days ${f1(r.days[0].loaderH)} h.`);
     if (r.fire.bayM3 > v.pileMax) add("warn", `Detection bay peaks at ${f0(r.fire.bayM3)} m³, above the ${f0(v.pileMax)} m³ pile limit. Split into ${r.fire.bays} fire-separated bays (${f0(r.fire.bayArea)} m² floor in total at ${f1(r.bayH)} m pile height).`);
-    if (r.bay.maxAge > v.dwellMax) add("warn", `Oldest shredded waste sits ${r.bay.maxAge} days in the bay (the Saturday shred held until the next fill). That's over the ${f1(v.dwellMax)}-day target.`);
+    if (r.bay.maxAge / 24 > v.dwellMax) add("warn", `Oldest shredded waste sits ${f0(r.bay.maxAge)} h (${f1(r.bay.maxAge / 24)} days) in the bay: Saturday's shredding waits over Sunday. That's over the ${f1(v.dwellMax)}-day target.`);
     if (r.shred.mswH <= 0) {
       const ex = 50, need = r.shred.bulkyH + v.Q / ex;
       add("crit", `Shredder: bulky waste alone needs ${f0(v.bulkyT)} ÷ ${f0(v.bulkyRate)} = <b>${f0(r.shred.bulkyH)} h/yr</b> (${f1(r.shred.bulkyHday)} h/day Mon–Sat), ${f1(r.shred.bulkyH / v.shredAvail)}× the ${f0(v.shredAvail)} h available, leaving no time for MSW. On one machine, with MSW at ${ex} t/h (${f0(v.Q / ex)} h), the total is ${f0(need)} h/yr, or ${f1(need / (v.weeks * WORK))} h/day. Options: a second shredder for bulky waste, double shifts, or a much faster bulky line (${f0(v.bulkyT / (v.shredAvail * 0.25))} t/h would fit bulky into a quarter of the year).`);
     }
     else add("warn", `Shredder: bulky waste takes ${f0(v.bulkyT)} ÷ ${f0(v.bulkyRate)} = ${f0(r.shred.bulkyH)} h/yr (${f1(r.shred.bulkyHwk)} h/week), leaving ${f0(r.shred.mswH)} h for MSW. ${f0(v.Q)} t/yr in ${f0(r.shred.mswH)} h needs <b>${f1(r.shred.rate)} t/h</b> average (${f1(r.shred.hDay)} h/day, Mon–Sat), with no allowance for breakdowns or blade changes. Confirm ${f1(r.shred.rate)} t/h with the shredder supplier, or add shredder hours.`);
-    add("ok", `Every tunnel fill has had at least ${r.bay.minAge} day(s) of IR watch in the detection bay (hold required: ${f0(v.holdH)} h).`);
+    add("ok", `Every tunnel fill has had at least ${f0(r.bay.minAge)} h of IR watch in the detection bay (hold required: ${f0(v.holdH)} h). MSW shredded ${hh(v.shredStart)}–${hh(v.shredStart + r.bay.window)}, fills start ${hh(v.fillStart)}.`);
     if (r.mb.heatEvapRaw > r.mb.heatEvap + 0.5) add("crit", "The additional heat would evaporate more water than stage 2 still contains. The heat evaporation has been capped.");
     add("info", `Heat: WTT's method sizes ${f0(v.kw * r.N)} kW (all stage 2 tunnels heating). With this plan at most ${r.peakHeat} of ${r.N} heat at once, so the peak is ${f0(r.peakKw)} kW.`);
     const icon = { ok: "✓", warn: "!", crit: "✕", info: "i" }, order = { crit: 0, warn: 1, info: 2, ok: 3 };
@@ -790,7 +802,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     document.getElementById("fireKpis").innerHTML = [
       kpi("Bay peak stock", f0(b.peak), "t", `${f0(fr.bayM3)} m³ at ${f0(v.rho * 1000)} kg/m³`),
       kpi("Bay floor area", f0(fr.bayArea), "m²", `pile ${f1(r.bayH)} m high · ${fr.bays} bay${fr.bays > 1 ? "s" : ""} ≤ ${f0(v.pileMax)} m³`),
-      kpi("Watch time before tunnel", b.minAge, b.minAge === 1 ? "day" : "days", `min · max ${b.maxAge} d (hold ${f0(v.holdH)} h)`),
+      kpi("Watch time before tunnel", f0(b.minAge), "h", `min · max ${f0(b.maxAge)} h (hold ${f0(v.holdH)} h)`),
       kpi("Batteries shredded / day", f0(fr.kgDay), "kg", `≈ ${f0(fr.cellsDay)} units · ${f1(fr.kgBay / 1000)} t in bay at peak`),
       kpi("Fire water, governing pile", f0(fr.governing.water), "m³", `${f0(fr.governing.lpm)} l/min · ${fr.governing.n.toLowerCase()}`)
     ].join("");
@@ -832,7 +844,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     svg.innerHTML = s;
     bindTips(svg);
     document.getElementById("bayNote").innerHTML =
-      `The bay has to hold more than the ${f0(v.holdH)} h minimum (${f0(r.shredDay)} t/day) because each refill takes a whole ${f0(r.s1.t)} t batch at once, and only waste shredded before the hold time is eligible. ` +
+      `Peak = the highest stock at any hour. Each refill takes a whole ${f0(r.s1.t)} t batch (2 days of shredding) at ${hh(v.fillStart)}, and only waste that has been in the bay ${f0(v.holdH)} h is eligible. If the hold is longer than the gap between the end of shredding (${hh(v.shredStart + r.bay.window)}) and the next morning's fill, another day's shredding has to be stocked. ` +
       `Size it at 350 kg/m³: lower density means more volume.`;
 
     document.getElementById("fireTable").innerHTML =
