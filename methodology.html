@@ -173,9 +173,9 @@ a { color: var(--ink); }
       <tr><td>Feed</td><td>DS 63% · ODS 44% of DS (WTT avg. samples 1–5)</td></tr>
       <tr><td>Density</td><td><b>350 kg/m³ minimum</b>, can rise up to +20% (420)</td></tr>
       <tr><td>Working week</td><td><b>Mon–Sat</b>, 52 wk/yr → 312 days/yr</td></tr>
-      <tr><td>Shredder</td><td><b>1,600 h/yr available</b> for MSW <u>and</u> bulky waste (60,000 t/yr at 20 t/h)</td></tr>
-      <tr><td>Loader</td><td><b>9 m³</b> bucket · <b>1,600 h/yr</b> (or more) · 2 min cycle <span class="red">(cycle assumed)</span></td></tr>
-      <tr><td>Fire bay</td><td><b>12 h hold</b> · wall <b>4.3 m</b> · pile <b>0.5 m below</b> wall top</td></tr>
+      <tr><td>Shredders</td><td><b>SH-01 MSW</b> 1,600 h/yr · <b>SH-02 bulky</b> 60,000 t/yr at ≥ 38 t/h</td></tr>
+      <tr><td>Loaders</td><td><b>2 × 9 m³</b> · 1,600 h/yr each · 2 min cycle <span class="red">(cycle assumed)</span></td></tr>
+      <tr><td>Fire bay</td><td><b>12 h hold</b> · shred 12:00–17:08, fill 07:00 · wall <b>4.3 m</b> · pile <b>0.5 m below</b> wall top</td></tr>
       <tr><td>Batteries</td><td><b>1 kg per tonne</b> of MSW (0.1%) <span class="red">(planning figure)</span></td></tr>
     </table>
   </div>
@@ -312,9 +312,11 @@ a { color: var(--ink); }
     <div class="calc">empty: 961 ÷ 9 → 107 · turn: 1,097 ÷ 9 → 122 · total <b>229</b> × 2 min = <span class="ans">7.6 h</span> <span class="note">(Mon/Wed/Fri)</span></div>
     <div class="calc">week = 3 × 153 + 3 × 229 = 1,146 buckets = <b>38.2 h</b></div>
     <div class="calc">year = 38.2 × 52 = <span class="ans">1,986 h/yr</span> &gt; 1,600 h <b class="red">✗</b></div>
-    <div class="calc">→ run the loader <mark>~2,000 h/yr</mark> (6.4 h/day avg, 7.6 h on turn days), or 2 loaders</div>
-    <div class="calc"><span class="lbl">Build 2</span> 2 × 1,986 = 3,973 h/yr ÷ 1,600 = 2.5 → <b class="red">3 loaders</b> (or 2 at ~2,000 h)</div>
-    <p class="note">Not included: feeding the shredder, bulky waste, loading output trucks. They all need loader time on top of this.</p>
+    <div class="calc">→ <mark>2 loaders</mark>, split by task:</div>
+    <div class="calc"><span class="lbl">L2</span> empty stage 2 = 107 × 2 min × 3 × 52 = <b>556 h</b> + shredder feed 240 t ÷ 0.35 ÷ 9 → 77 buckets/day = <b>801 h</b> → <span class="ans">1,357 h</span></div>
+    <div class="calc"><span class="lbl">L1</span> fill + turn = 1,986 − 556 = <span class="ans">1,430 h</span> &nbsp; both ≤ 1,600 h ✓</div>
+    <div class="calc"><span class="lbl">Build 2</span> tunnels 3,973 h + feed/emptying ≈ 5,560 h ÷ 1,600 → <b class="red">4 loaders</b></div>
+    <p class="note">Raw MSW density (0.35) and the 2-minute cycle are assumed. Bulky feed to SH-02 is assumed to use its own grab.</p>
   </div>
 
   <div class="blk">
@@ -326,12 +328,12 @@ a { color: var(--ink); }
     <div class="calc">3,000 + 75,000 ÷ 50 = 3,000 + 1,500 = <b>4,500 h/yr</b> = <mark>14.4 h/day Mon–Sat</mark></div>
     <table class="hand">
       <tr><th>option</th><th>what it means</th></tr>
-      <tr><td>2nd shredder for bulky</td><td>3,000 h at 20 t/h. MSW keeps 1,600 h at 46.9 t/h</td></tr>
+      <tr><td><b>✓ 2nd shredder for bulky</b></td><td>SH-02 at <b>≥ 38 t/h</b> fits 1,600 h (1,500 h at 40 t/h). MSW keeps SH-01: 1,600 h at 46.9 t/h</td></tr>
       <tr><td>double shift</td><td>~4,500 h/yr on one machine. Check maintenance time</td></tr>
       <tr><td>faster bulky line</td><td>bulky in 400 h needs 150 t/h (unrealistic)</td></tr>
     </table>
     <div class="sticky l">60,000 t of bulky waste is 80% of the MSW tonnage. That's unusually high, so check it isn't the whole site intake. If it's right, the shredder is the bottleneck, not the tunnels.</div>
-    <p class="note">Run MSW early in the shift so the next morning's fill has had its full 12 h. Bulky output is assumed not to go to the tunnels.</div>
+    <p class="note"><b>Chosen:</b> SH-01 MSW only, 12:00–17:08. SH-02 bulky only, 07:00–11:48. Each backs up the other. Bulky output is assumed not to go to the tunnels.</div>
 </section>
 
 <!-- ================= SHEET 4 ================= -->
@@ -344,12 +346,13 @@ a { color: var(--ink); }
     <p>Idea: batteries damaged by the shredder get a chance to go into thermal runaway <b>in an open, camera-watched bay</b>, not inside a closed tunnel.</p>
     <p><b>12 h hold, checked hour by hour:</b></p>
     <div class="calc">1 fill (481 t) = 481 ÷ 240 = <mark>2 days of shredding</mark></div>
-    <div class="calc">shred MSW 06:00 → 11:08 (5.1 h) · fill starts 07:00 the next morning</div>
-    <div class="calc">youngest load at fill = 11:08 → 07:00 = <b>19.9 h</b> ≥ 12 h ✓ <span class="note">(24 h ✗)</span></div>
-    <div class="calc">peak = 2 days (481 t) + 1 h of today's shred (47 t) = <span class="ans">528 t</span></div>
-    <div class="calc">→ 528 ÷ 0.35 = <b>1,508 m³</b> <span class="note">(size it at 350 kg/m³)</span></div>
-    <div class="calc">watch time: min <b>19 h</b> · max <b>72 h</b> (Sat → Tue)</div>
-    <div class="sticky l">Rule: any hold up to ~19 h lets you fill first thing next morning. A 24 h hold misses by 4 h, so a third day of shredding has to sit in the bay: <b>721 t / 2,060 m³</b>, one extra bay. The saving comes from filling in the morning; the shorter hold is what allows it.</div>
+    <div class="calc"><b>fill 07:00 → 12:06</b>, then <b>shred 12:00 → 17:08</b> into the empty bays</div>
+    <div class="calc">youngest load at fill = 17:08 → 07:00 = <b>13.9 h</b> ≥ 12 h ✓</div>
+    <div class="calc">peak = 2 days only (no overlap with today's shred) = <span class="ans">481 t</span></div>
+    <div class="calc">→ 481 ÷ 0.35 = <b>1,374 m³</b> <span class="note">(size it at 350 kg/m³)</span></div>
+    <div class="calc">1 day's shred = 240 t = 687 m³ = <mark>1 pair of bays</mark> → pair A / pair B alternate</div>
+    <div class="calc">watch time: min <b>13.9 h</b> · max <b>66 h</b> (Sat → Tue)</div>
+    <div class="sticky l">Comparison: shredding in the morning gives 528 t (4 × 377 m³). A 24 h hold gives 721 t (5 bays). Shredding in the afternoon and filling in the morning is the smallest bay possible without splitting tunnel fills.</div>
 
     <div class="skwrap">
     <svg class="sk" viewBox="0 0 640 190" role="img" aria-label="Sketch of the detection bay section with 0.5 m freeboard">
@@ -369,12 +372,12 @@ a { color: var(--ink); }
     </svg>
     </div>
     <div class="calc">pile height = 4.3 wall − 0.5 = <b>3.8 m</b></div>
-    <div class="calc">floor = 1,508 ÷ 3.8 = <span class="ans">397 m²</span> <span class="note">(24 h: 542 m²)</span></div>
-    <div class="calc">bays = 1,508 ÷ 450 m³ pile limit = 3.4 → <span class="ans">4 bays</span> of ~377 m³ (~99 m² each)</div>
-    <div class="calc"><span class="lbl">Build 2</span> 1,055 t · 3,015 m³ · 793 m² · <b>7 bays</b> <span class="note">(24 h: 10 bays)</span></div>
+    <div class="calc">floor = 1,374 ÷ 3.8 = <span class="ans">361 m²</span> <span class="note">(24 h: 542 m²)</span></div>
+    <div class="calc">bays = 1,374 ÷ 450 m³ pile limit = 3.05 → <span class="ans">4 bays</span> of 343 m³ (~90 m² each)</div>
+    <div class="calc"><span class="lbl">Build 2</span> 962 t · 2,747 m³ · 723 m² · <b>7 bays</b> <span class="note">(24 h: 10 bays)</span></div>
     <p><b>Batteries at 1 kg/t (0.1% by weight):</b></p>
     <div class="calc">per day = 240 t × 1 = <b>240 kg</b> &nbsp; per fill = 481 × 1 = <b>481 kg</b></div>
-    <div class="calc">in bay at peak = 528 × 1 = <span class="ans">528 kg of batteries</span> &nbsp; per year = <b>75 t</b></div>
+    <div class="calc">in bay at peak = 481 × 1 = <span class="ans">481 kg of batteries</span> &nbsp; per year = <b>75 t</b></div>
     <div class="calc"><span class="lbl">count</span> ÷ 0.05 kg each <span class="red">(assumed)</span> ≈ <b>4,800 per day</b> (20 per tonne)</div>
     <div class="sticky">1 kg/t is a planning figure in the 0.5–2 kg/t range for loose batteries and vapes in residual MSW. Replace it with a battery audit of your own feed. Even at this level there are thousands of units a day, so the bay is still needed.</div>
   </div>
@@ -386,13 +389,13 @@ a { color: var(--ink); }
     <div class="tblwrap">
     <table class="hand">
       <tr><th>pile</th><th class="n">m³</th><th class="n">l/min</th><th class="n">m³ water</th></tr>
-      <tr><td>1 detection bay</td><td class="n">377</td><td class="n">2,488</td><td class="n">448</td></tr>
+      <tr><td>1 detection bay</td><td class="n">343</td><td class="n">2,266</td><td class="n">408</td></tr>
       <tr><td><b>stage 1 tunnel</b></td><td class="n">1,374</td><td class="n">9,066</td><td class="n"><b>1,632</b> ← governs</td></tr>
       <tr><td>stage 2 tunnel</td><td class="n">1,097</td><td class="n">7,242</td><td class="n">1,304</td></tr>
-      <tr><td class="red">bay NOT split</td><td class="n red">1,508</td><td class="n red">9,953</td><td class="n red">1,792</td></tr>
+      <tr><td class="red">bay NOT split</td><td class="n red">1,374</td><td class="n red">9,066</td><td class="n red">1,632</td></tr>
     </table>
     </div>
-    <p class="note">Splitting the bay into 4 cuts the governing fire water from 1,792 to 1,632 m³. Containment must hold this plus rainfall.</p>
+    <p class="note">Splitting the bay into 4 keeps each pile under 450 m³. The stage 1 tunnel still governs fire water at 1,632 m³. Containment must hold this plus rainfall.</p>
     <div class="calc"><span class="lbl">heat check</span> max 2 of 3 stage 2 tunnels heating at once → 2 × 85.7 = <b>171 kW</b> (WTT: 257 kW)</div>
   </div>
 

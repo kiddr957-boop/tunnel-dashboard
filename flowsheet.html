@@ -75,10 +75,10 @@ ol.notes b { color: var(--amber); font-weight: 600; }
 <div class="wrap">
   <header>
     <div>
-      <h1>Process flow sheet · tunnel composting · Build 1</h1>
+      <h1>Process flow sheet · optimal design (interim) · Build 1</h1>
       <div class="sub">Coleraine · Riverridge · WTT 26029 rev 1 mass balance · 75,000 t/yr MSW · 60,000 t/yr bulky · Mon–Sat · 350 kg/m³</div>
     </div>
-    <span class="stamp">Preliminary · not for construction</span>
+    <span class="stamp">Interim · before Portadown data · not for construction</span>
   </header>
 
   <div class="sheet">
@@ -144,10 +144,14 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <path class="eq-fill" d="M502 104 H622 L608 180 H516 Z"/>
       <circle class="eq" cx="544" cy="140" r="17"/><circle class="eq" cx="580" cy="140" r="17"/>
       <path class="eq" d="M532 140 l6 -8 l6 8 l6 -8 M568 140 l6 8 l6 -8 l6 8"/>
-      <text x="562" y="96" font-size="13" font-weight="700" text-anchor="middle">SH-01 MSW SHREDDER</text>
-      <text x="562" y="198" font-size="11" class="soft" text-anchor="middle">1,600 h/yr available</text>
-      <text x="562" y="212" font-size="11" class="soft" text-anchor="middle">spark detection + extinguishing</text>
+      <text x="562" y="96" font-size="13" font-weight="700" text-anchor="middle">SH-01 MSW ONLY</text>
+      <text x="562" y="198" font-size="11" class="soft" text-anchor="middle">46.9 t/h · 1,600 h · 12:00–17:08</text>
+      <text x="562" y="212" font-size="11" class="amber" text-anchor="middle">SD-01 exit-belt spark/IR + auto quench</text>
     </g>
+
+    <!-- Exit-belt detection -->
+    <g><rect x="628" y="150" width="26" height="18" fill="none" stroke="#ffd166" stroke-width="1.5"/><text x="641" y="163" font-size="10" font-weight="700" text-anchor="middle" class="amber">SD</text></g>
+    <g class="ld"><rect x="464" y="150" width="28" height="16" rx="2"/><text x="478" y="162">L2</text></g>
 
     <!-- Detection bays -->
     <path class="flow" d="M622 141 H660"/>
@@ -165,15 +169,17 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <path class="eq-fill" d="M725 180 Q750 134 776 180 Z"/>
       <path class="eq-fill" d="M784 180 Q809 140 835 180 Z"/>
       <path class="eq-fill" d="M843 180 Q868 148 894 180 Z"/>
-      <text x="780" y="198" font-size="11" class="soft" text-anchor="middle">4 × ~377 m³ · 397 m² · pile ≤ 3.8 m (wall 4.3 m − 0.5)</text>
-      <text x="780" y="212" font-size="11" class="soft" text-anchor="middle">12 h hold · IR cameras · FIFO · peak 528 t / 1,508 m³</text>
+      <text x="721" y="113" font-size="11" font-weight="700" text-anchor="middle" class="amber">PAIR A</text>
+      <text x="839" y="113" font-size="11" font-weight="700" text-anchor="middle" class="amber">PAIR B</text>
+      <text x="780" y="198" font-size="11" class="soft" text-anchor="middle">4 × 343 m³ · 361 m² · pile ≤ 3.8 m (wall 4.3 m − 0.5)</text>
+      <text x="780" y="212" font-size="11" class="soft" text-anchor="middle">12 h hold · 1 day = 1 pair · peak 481 t / 1,374 m³</text>
     </g>
 
     <!-- Bays to stage 1 -->
     <path class="flow" d="M898 141 H968"/>
     <g class="tag"><circle cx="916" cy="124" r="11"/><text x="916" y="128">5</text></g>
-    <g class="ld"><rect x="938" y="148" width="22" height="16" rx="2"/><text x="949" y="160">L</text></g>
-    <text x="933" y="182" font-size="11" class="soft" text-anchor="middle">Tue/Thu/Sat</text>
+    <g class="ld"><rect x="934" y="148" width="28" height="16" rx="2"/><text x="948" y="160">L1</text></g>
+    <text x="933" y="182" font-size="11" class="soft" text-anchor="middle">T/T/S 07:00</text>
 
     <!-- Stage 1 tunnels -->
     <g>
@@ -208,7 +214,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
     <!-- Turn stage 1 -> stage 2 -->
     <path class="flow" d="M1180 206 V382"/>
     <g class="tag"><circle cx="1160" cy="252" r="11"/><text x="1160" y="256">7</text></g>
-    <g class="ld"><rect x="1190" y="244" width="22" height="16" rx="2"/><text x="1201" y="256">L</text></g>
+    <g class="ld"><rect x="1190" y="244" width="28" height="16" rx="2"/><text x="1204" y="256">L1</text></g>
     <text x="1166" y="298" font-size="12" font-weight="600" text-anchor="end">TURN into an emptied tunnel</text>
     <text x="1166" y="314" font-size="11" class="soft" text-anchor="end">Mon/Wed/Fri · 384 t · T1→T4, T2→T5, T3→T6</text>
     <text x="1166" y="330" font-size="11" class="soft" text-anchor="end">stage 2 tunnel emptied first ⑩</text>
@@ -245,12 +251,12 @@ ol.notes b { color: var(--amber); font-weight: 600; }
     </g>
     <path class="util" d="M1266 599 H1240 V506"/>
     <g class="tag"><circle cx="1240" cy="550" r="11"/><text x="1240" y="554">9</text></g>
-    <text x="1320" y="640" font-size="10" class="soft" text-anchor="middle">86 kW/tunnel · peak 171 kW</text>
+    <text x="1320" y="640" font-size="10" class="soft" text-anchor="middle">size 171 kW + margin</text>
 
     <!-- Output -->
     <path class="flow" d="M970 450 H866"/>
     <g class="tag"><circle cx="936" cy="433" r="11"/><text x="936" y="437">10</text></g>
-    <g class="ld"><rect x="894" y="458" width="22" height="16" rx="2"/><text x="905" y="470">L</text></g>
+    <g class="ld"><rect x="892" y="458" width="28" height="16" rx="2"/><text x="906" y="470">L2</text></g>
     <g>
       <rect class="eq-fill" x="712" y="414" width="152" height="72"/>
       <path class="eq" d="M722 476 Q760 436 800 476 Q830 446 854 476"/>
@@ -280,10 +286,10 @@ ol.notes b { color: var(--amber); font-weight: 600; }
     <path class="flow" d="M132 649 H194"/>
     <g class="tag"><circle cx="162" cy="632" r="11"/><text x="162" y="636">11</text></g>
     <g>
-      <path class="eq-fill" d="M196 612 H316 L302 688 H210 Z" stroke-dasharray="7 4"/>
+      <path class="eq-fill" d="M196 612 H316 L302 688 H210 Z"/>
       <circle class="eq" cx="238" cy="648" r="17"/><circle class="eq" cx="274" cy="648" r="17"/>
-      <text x="256" y="604" font-size="13" font-weight="700" text-anchor="middle">SH-02 BULKY (proposed)</text>
-      <text x="256" y="706" font-size="11" class="soft" text-anchor="middle">20 t/h · 3,000 h/yr</text>
+      <text x="256" y="604" font-size="13" font-weight="700" text-anchor="middle">SH-02 BULKY ONLY</text>
+      <text x="256" y="706" font-size="11" class="soft" text-anchor="middle">≥ 38 t/h · 1,500 h @ 40 t/h</text>
     </g>
     <path class="flow" d="M316 649 H372"/>
     <g class="tag"><circle cx="344" cy="632" r="11"/><text x="344" y="636">12</text></g>
@@ -294,8 +300,8 @@ ol.notes b { color: var(--amber); font-weight: 600; }
     </g>
     <g>
       <rect x="36" y="722" width="464" height="50" fill="none" stroke="#ffd166" stroke-width="1.5"/>
-      <text x="48" y="742" font-size="12" font-weight="600" class="amber">⚠ 60,000 t ÷ 20 t/h = 3,000 h, more than the 1,600 h on SH-01</text>
-      <text x="48" y="760" font-size="12" class="amber">so a 2nd shredder (SH-02) or more shifts is needed. Confirm the 60,000 t basis.</text>
+      <text x="48" y="742" font-size="12" font-weight="600" class="amber">SH-01 ⇄ SH-02 cross back-up. Bulky must reach ≥ 38 t/h to fit 1,600 h</text>
+      <text x="48" y="760" font-size="12" class="amber">(20 t/h would need 3,000 h). Confirm with supplier / Portadown data.</text>
     </g>
 
     <!-- ============ FIRE WATER ============ -->
@@ -326,7 +332,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <path class="gas" d="M750 680 H800"/><text x="810" y="684" font-size="11">process air / off-gas</text>
       <path class="warn" d="M750 702 H800"/><text x="810" y="706" font-size="11">hot load / warning</text>
       <g class="tag"><circle cx="762" cy="726" r="10"/><text x="762" y="730">n</text></g><text x="778" y="730" font-size="11">stream no.</text>
-      <g class="ld"><rect x="864" y="718" width="22" height="16" rx="2"/><text x="875" y="730">L</text></g><text x="892" y="730" font-size="11">loader move (9 m³)</text>
+      <g class="ld"><rect x="864" y="718" width="22" height="16" rx="2"/><text x="875" y="730">L</text></g><text x="892" y="730" font-size="11">L1 tunnels · L2 feed/out</text>
     </g>
 
     <!-- ============ TITLE BLOCK ============ -->
@@ -334,16 +340,60 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <rect x="1030" y="652" width="346" height="154" fill="none" stroke="#e8f1ff" stroke-width="1.8"/>
       <path d="M1030 690 H1376 M1030 722 H1376 M1030 754 H1376 M1030 780 H1376 M1203 722 V806" stroke="#e8f1ff" stroke-width=".9" fill="none"/>
       <text x="1042" y="676" font-size="15" font-weight="700" letter-spacing="1">COLERAINE TUNNEL COMPOSTING</text>
-      <text x="1042" y="710" font-size="12" class="soft">PROCESS FLOW SHEET · BUILD 1 (6 TUNNELS)</text>
+      <text x="1042" y="710" font-size="12" class="soft">OPTIMAL DESIGN (INTERIM) · BUILD 1 (6 TUNNELS)</text>
       <text x="1042" y="742" font-size="11" class="soft">CLIENT</text><text x="1090" y="742" font-size="12" font-weight="600">RIVERRIDGE</text>
       <text x="1214" y="742" font-size="11" class="soft">BASIS</text><text x="1256" y="742" font-size="12" font-weight="600">WTT 26029 R1</text>
       <text x="1042" y="772" font-size="11" class="soft">DWG</text><text x="1076" y="772" font-size="12" font-weight="600" class="mono">26029-PFD-001</text>
-      <text x="1214" y="772" font-size="11" class="soft">REV</text><text x="1244" y="772" font-size="12" font-weight="600" class="mono">A · 27/09/26</text>
+      <text x="1214" y="772" font-size="11" class="soft">REV</text><text x="1244" y="772" font-size="12" font-weight="600" class="mono">B · 27/09/26</text>
       <text x="1042" y="798" font-size="11" class="soft">DRAWN</text><text x="1086" y="798" font-size="11">Claude (for review)</text>
       <text x="1214" y="798" font-size="11" class="soft">CHK</text><text x="1244" y="798" font-size="11">______ · SCALE NTS</text>
     </g>
   </svg>
   </div>
+
+
+  <section class="panel">
+    <h2>Daily rhythm · Mon–Sat</h2>
+    <div class="tblwrap">
+    <svg class="pfd" viewBox="0 0 1024 300" style="min-width:760px" role="img" aria-label="Daily timeline for loaders, shredders and bays">
+      <g font-size="11">
+        <line x1="150" y1="18" x2="150" y2="250" stroke="rgba(232,241,255,.18)"/><text x="150" y="12" text-anchor="middle" class="soft">06:00</text>
+        <line x1="210" y1="18" x2="210" y2="250" stroke="rgba(232,241,255,.18)"/><text x="210" y="12" text-anchor="middle" class="soft">07:00</text>
+        <line x1="270" y1="18" x2="270" y2="250" stroke="rgba(232,241,255,.18)"/><text x="270" y="12" text-anchor="middle" class="soft">08:00</text>
+        <line x1="330" y1="18" x2="330" y2="250" stroke="rgba(232,241,255,.18)"/><text x="330" y="12" text-anchor="middle" class="soft">09:00</text>
+        <line x1="390" y1="18" x2="390" y2="250" stroke="rgba(232,241,255,.18)"/><text x="390" y="12" text-anchor="middle" class="soft">10:00</text>
+        <line x1="450" y1="18" x2="450" y2="250" stroke="rgba(232,241,255,.18)"/><text x="450" y="12" text-anchor="middle" class="soft">11:00</text>
+        <line x1="510" y1="18" x2="510" y2="250" stroke="rgba(232,241,255,.18)"/><text x="510" y="12" text-anchor="middle" class="soft">12:00</text>
+        <line x1="570" y1="18" x2="570" y2="250" stroke="rgba(232,241,255,.18)"/><text x="570" y="12" text-anchor="middle" class="soft">13:00</text>
+        <line x1="630" y1="18" x2="630" y2="250" stroke="rgba(232,241,255,.18)"/><text x="630" y="12" text-anchor="middle" class="soft">14:00</text>
+        <line x1="690" y1="18" x2="690" y2="250" stroke="rgba(232,241,255,.18)"/><text x="690" y="12" text-anchor="middle" class="soft">15:00</text>
+        <line x1="750" y1="18" x2="750" y2="250" stroke="rgba(232,241,255,.18)"/><text x="750" y="12" text-anchor="middle" class="soft">16:00</text>
+        <line x1="810" y1="18" x2="810" y2="250" stroke="rgba(232,241,255,.18)"/><text x="810" y="12" text-anchor="middle" class="soft">17:00</text>
+        <line x1="870" y1="18" x2="870" y2="250" stroke="rgba(232,241,255,.18)"/><text x="870" y="12" text-anchor="middle" class="soft">18:00</text>
+        <line x1="930" y1="18" x2="930" y2="250" stroke="rgba(232,241,255,.18)"/><text x="930" y="12" text-anchor="middle" class="soft">19:00</text>
+        <line x1="990" y1="18" x2="990" y2="250" stroke="rgba(232,241,255,.18)"/><text x="990" y="12" text-anchor="middle" class="soft">20:00</text>
+      </g>
+      <text x="0" y="41" font-size="12" font-weight="600">L1 · Mon/Wed/Fri</text>
+      <rect x="424" y="26" width="244" height="22" fill="rgba(232,241,255,.22)" stroke="#e8f1ff" stroke-width="1.5"/><text x="430" y="41" font-size="11">② turn T1→T4 · 122 buckets</text>
+      <text x="0" y="73" font-size="12" font-weight="600">L2 · Mon/Wed/Fri</text>
+      <rect x="210" y="58" width="214" height="22" fill="rgba(232,241,255,.22)" stroke="#e8f1ff" stroke-width="1.5"/><text x="216" y="73" font-size="11">① empty T4 → OS-01 · 107 b</text>
+      <rect x="510" y="58" width="308" height="22" fill="rgba(158,195,240,.15)" stroke="#9ec3f0" stroke-width="1.2"/><text x="516" y="73" font-size="11">feed SH-01</text>
+      <text x="0" y="105" font-size="12" font-weight="600">L1 · Tue/Thu/Sat</text>
+      <rect x="210" y="90" width="306" height="22" fill="rgba(232,241,255,.22)" stroke="#e8f1ff" stroke-width="1.5"/><text x="216" y="105" font-size="11">③ fill T1 from pairs A + B · 153 b</text>
+      <text x="0" y="137" font-size="12" font-weight="600">L2 · Tue/Thu/Sat</text>
+      <rect x="510" y="122" width="308" height="22" fill="rgba(158,195,240,.15)" stroke="#9ec3f0" stroke-width="1.2"/><text x="516" y="137" font-size="11">feed SH-01</text>
+      <text x="0" y="169" font-size="12" font-weight="600">SH-01 MSW</text>
+      <rect x="510" y="154" width="308" height="22" fill="rgba(255,209,102,.22)" stroke="#ffd166" stroke-width="1.5"/><text x="516" y="169" font-size="11">shred 240 t → next empty pair</text>
+      <text x="0" y="201" font-size="12" font-weight="600">SH-02 bulky</text>
+      <rect x="210" y="186" width="288" height="22" fill="rgba(158,195,240,.15)" stroke="#9ec3f0" stroke-width="1.2"/><text x="216" y="201" font-size="11">bulky 4.8 h/day</text>
+      <text x="0" y="233" font-size="12" font-weight="600">Detection bays</text>
+      <rect x="150" y="218" width="840" height="22" fill="none" stroke="#9ec3f0" stroke-width="1.3" stroke-dasharray="6 4"/><text x="156" y="233" font-size="11">IR cameras + auto deluge, 24/7</text>
+      <path d="M457 262 C 600 290, 800 290, 900 262" fill="none" stroke="#ffd166" stroke-width="1.3" stroke-dasharray="4 4"/>
+      <text x="680" y="296" font-size="11" text-anchor="middle" class="amber">last shred 17:08 → next fill 07:00 = 13.9 h ≥ 12 h hold ✓</text>
+    </svg>
+    </div>
+    <p class="note">Bucket counts at 9 m³ and a 2-minute cycle (cycle time assumed). L2 feeds SH-01 in short spells during the shredding window (about 2.6 h of loader work). SH-02 is assumed to have its own grab or feeder.</p>
+  </section>
 
   <div class="grid2">
     <section class="panel">
@@ -375,12 +425,13 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <h2>Drawing notes</h2>
       <ol class="notes">
         <li>Mass balance from WTT 26029 rev 1 (3-tunnel sheet). All flows within ±1 t.</li>
-        <li>Turning always goes into a <b>different, emptied</b> tunnel: ⑩ empty T4, then ⑦ turn T1→T4, then ⑤ refill T1 the next working day.</li>
-        <li>Detection bays hold shredded MSW at least <b>12 h</b> under IR cameras (19–72 h in practice). Shred 06:00–11:00, fill from 07:00 next day. 4 fire-separated bays, pile 3.8 m, 0.5 m below the 4.3 m wall.</li>
-        <li>Loader moves (L) need <b>1,986 h/yr</b> against 1,600 h available. That means about 2,000 h on one machine, or 2 loaders. Shredder feeding is not included.</li>
-        <li>SH-01 has 1,600 h/yr. Bulky waste at 60,000 t needs 3,000 h, so a <b>second shredder</b> is shown dashed as proposed.</li>
-        <li>Batteries 1 kg/t is a planning figure. It needs replacing with an audit of the incoming MSW.</li>
-        <li>Fire water: 6.6 l/min per m³ for 3 h (EA FPP style). Confirm the basis with NIEA and NIFRS.</li>
+        <li>Turning always goes into a <b>different, emptied</b> tunnel: L2 empties T4 ⑩, then L1 turns T1→T4 ⑦. T1 is refilled at 07:00 the next working day ⑤.</li>
+        <li><b>SH-01 takes MSW only</b> (46.9 t/h, 12:00–17:08). <b>SH-02 takes bulky only</b> and must reach ≥ 38 t/h to fit 1,600 h. Each machine backs up the other.</li>
+        <li>SD-01 exit-belt spark/IR detection with automatic quench, as at Portadown, catches ignitions at the shredder.</li>
+        <li>Detection bays: 4 × 343 m³ in <b>2 pairs, one pair per shredding day</b>. Shredding in the afternoon and filling in the morning keeps the peak to one batch (481 t) and gives ≥ 13.9 h of watch.</li>
+        <li><b>2 loaders</b> (9 m³): L1 tunnels ~1,430 h/yr, L2 shredder feed + stage 2 emptying ~1,360 h/yr. Both are within 1,600 h (2-minute cycle assumed).</li>
+        <li>Heat plant sized to the staggered peak, 171 kW plus margin, not WTT's 257 kW. Fire water 1,632 m³ (stage 1 tunnel governs), with containment to match.</li>
+        <li>Batteries 1 kg/t and the fire-water basis are interim. Replace them with Portadown detection and fire records and with NIEA/NIFRS guidance.</li>
       </ol>
     </section>
   </div>
