@@ -173,7 +173,7 @@ a { color: var(--ink); }
       <tr><td>Feed</td><td>DS 63% · ODS 44% of DS (WTT avg. samples 1–5)</td></tr>
       <tr><td>Density</td><td><b>350 kg/m³ minimum</b>, can rise up to +20% (420)</td></tr>
       <tr><td>Working week</td><td><b>Mon–Sat</b>, 52 wk/yr → 312 days/yr</td></tr>
-      <tr><td>Shredder</td><td><b>1,600 h/yr available</b> for MSW <u>and</u> bulky waste</td></tr>
+      <tr><td>Shredder</td><td><b>1,600 h/yr available</b> for MSW <u>and</u> bulky waste (60,000 t/yr at 20 t/h)</td></tr>
       <tr><td>Loader</td><td><b>9 m³</b> bucket · <b>1,600 h/yr</b> (or more) · 2 min cycle <span class="red">(cycle assumed)</span></td></tr>
       <tr><td>Fire bay</td><td>24 h hold · wall <b>3.8 m average</b> · pile <b>0.5 m below</b> wall top</td></tr>
       <tr><td>Batteries</td><td><b>1 kg per tonne</b> of MSW (0.1%) <span class="red">(planning figure)</span></td></tr>
@@ -320,19 +320,18 @@ a { color: var(--ink); }
   <div class="blk">
     <div class="ref">§7</div>
     <h2>Shredder: 1,600 h for MSW + bulky</h2>
-    <div class="calc">MSW per day = 75,000 ÷ 312 = <b>240 t</b></div>
-    <div class="calc">if MSW gets all 1,600 h → 75,000 ÷ 1,600 = <b>46.9 t/h</b> → bulky gets <b class="red">0 h ✗</b></div>
-    <p>So MSW has to go faster to leave time for bulky waste:</p>
+    <div class="calc">bulky = 60,000 t ÷ 20 t/h = <span class="ans">3,000 h/yr</span> <span class="note">(9.6 h/day Mon–Sat)</span></div>
+    <div class="calc">3,000 ÷ 1,600 = <b class="red">1.9 × the whole shredder year ✗</b> → MSW gets <b class="red">0 h</b></div>
+    <div class="calc">one machine doing both, MSW at 50 t/h <span class="red">(example)</span>:</div>
+    <div class="calc">3,000 + 75,000 ÷ 50 = 3,000 + 1,500 = <b>4,500 h/yr</b> = <mark>14.4 h/day Mon–Sat</mark></div>
     <table class="hand">
-      <tr><th class="n">MSW h</th><th class="n">MSW t/h</th><th class="n">bulky h/yr</th><th class="n">bulky h/day</th></tr>
-      <tr><td class="n">1,600</td><td class="n">46.9</td><td class="n red">0</td><td class="n red">0</td></tr>
-      <tr><td class="n">1,400</td><td class="n">53.6</td><td class="n">200</td><td class="n">0.6</td></tr>
-      <tr><td class="n">1,200</td><td class="n">62.5</td><td class="n">400</td><td class="n">1.3</td></tr>
-      <tr><td class="n">1,000</td><td class="n">75.0</td><td class="n">600</td><td class="n">1.9</td></tr>
+      <tr><th>option</th><th>what it means</th></tr>
+      <tr><td>2nd shredder for bulky</td><td>3,000 h at 20 t/h. MSW keeps 1,600 h at 46.9 t/h</td></tr>
+      <tr><td>double shift</td><td>~4,500 h/yr on one machine. Check maintenance time</td></tr>
+      <tr><td>faster bulky line</td><td>bulky in 400 h needs 150 t/h (unrealistic)</td></tr>
     </table>
-    <div class="calc"><span class="lbl">Build 2</span> 150,000 ÷ 1,600 = <b>93.8 t/h</b> with no bulky time</div>
-    <p class="note">Need: bulky t/yr and bulky t/h → bulky hours → the MSW t/h the shredder has to hold. Run MSW early in the shift so the next day's fill has had its full 24 h.</p>
-  </div>
+    <div class="sticky l">60,000 t of bulky waste is 80% of the MSW tonnage. That's unusually high, so check it isn't the whole site intake. If it's right, the shredder is the bottleneck, not the tunnels.</div>
+    <p class="note">Run MSW early in the shift so the next day's fill has had its full 24 h. Bulky output is assumed not to go to the tunnels.</div>
 </section>
 
 <!-- ================= SHEET 4 ================= -->
@@ -402,13 +401,13 @@ a { color: var(--ink); }
       <li class="done">WTT mass balance reproduced (all flows within ±1 t)</li>
       <li class="done">4.5 m fill met at 350 kg/m³ (4.46 / 4.35 m)</li>
       <li>WTT: 6 days in stage 1 instead of 7</li>
-      <li>Shredder supplier: 46.9 t/h on this MSW (93.8 t/h for Build 2)</li>
-      <li class="done">Loader hours: 1,600 h/yr given → 1,986 h needed (Build 1)</li>
+            <li class="done">Loader hours: 1,600 h/yr given → 1,986 h needed (Build 1)</li>
       <li>Loader cycle time (2 min assumed) → loader numbers</li>
       <li class="done">Bay wall 3.8 m average → pile 3.3 m</li>
       <li>NIEA + NIFRS: pile limit (450 m³) and fire-water basis</li>
       <li>Batteries 1 kg/t planning figure → replace with a battery audit (kg/t and unit mass)</li>
-      <li>Bulky waste t/yr and shredder t/h: 1,600 h leaves it 0 h at 46.9 t/h MSW</li>
+      <li class="done">Bulky 60,000 t at 20 t/h = 3,000 h, more than the 1,600 h available</li>
+      <li>Shredder strategy: 2nd machine or more hours. Confirm the 60,000 t basis</li>
     </ul>
     <div class="sig">
       <div>Prepared: <span>Claude (for review)</span></div>
