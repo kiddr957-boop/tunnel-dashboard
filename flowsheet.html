@@ -277,8 +277,8 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <rect class="eq" x="474" y="452" width="46" height="18"/><text x="497" y="465" font-size="9" text-anchor="middle">MAG</text>
       <rect class="eq" x="474" y="476" width="46" height="18"/><text x="497" y="489" font-size="9" text-anchor="middle">ECS</text>
       <text x="466" y="516" font-size="10" class="soft" text-anchor="middle">screen · magnet · eddy</text>
-      <text x="466" y="530" font-size="10" class="soft" text-anchor="middle">1,600 h · needs 32.8 t/h</text>
-      <text x="466" y="562" font-size="10" class="amber" text-anchor="middle">rated 25 t/h ✗ · BQ on belts (TBC)</text>
+      <text x="466" y="530" font-size="10" class="soft" text-anchor="middle">33 t/h · 1,600 h · 52,800 t/yr</text>
+      <text x="466" y="562" font-size="10" class="amber" text-anchor="middle">33 ≥ 32.8 t/h ✓ · BQ on belts (TBC)</text>
     </g>
     <path class="flow" d="M402 470 H352"/>
     <g class="tag"><circle cx="376" cy="453" r="11"/><text x="376" y="457">15</text></g>
@@ -360,7 +360,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <text x="1042" y="742" font-size="11" class="soft">CLIENT</text><text x="1090" y="742" font-size="12" font-weight="600">RIVERRIDGE</text>
       <text x="1214" y="742" font-size="11" class="soft">BASIS</text><text x="1256" y="742" font-size="12" font-weight="600">WTT 26029 R1</text>
       <text x="1042" y="772" font-size="11" class="soft">DWG</text><text x="1076" y="772" font-size="12" font-weight="600" class="mono">26029-PFD-001</text>
-      <text x="1214" y="772" font-size="11" class="soft">REV</text><text x="1244" y="772" font-size="12" font-weight="600" class="mono">F · 27/09/26</text>
+      <text x="1214" y="772" font-size="11" class="soft">REV</text><text x="1244" y="772" font-size="12" font-weight="600" class="mono">G · 27/09/26</text>
       <text x="1042" y="798" font-size="11" class="soft">DRAWN</text><text x="1086" y="798" font-size="11">Claude (for review)</text>
       <text x="1214" y="798" font-size="11" class="soft">CHK</text><text x="1244" y="798" font-size="11">______ · SCALE NTS</text>
     </g>
@@ -403,7 +403,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
 <text x="0" y="169" font-size="12" font-weight="600">SH-01 MSW</text>
 <rect x="510" y="154" width="308" height="22" fill="rgba(255,209,102,.22)" stroke="#ffd166" stroke-width="1.5"/><text x="516" y="169" font-size="11">shred 240 t → next empty pair</text>
 <text x="0" y="201" font-size="12" font-weight="600">DH-01 → SP-01</text>
-<rect x="570" y="186" width="308" height="22" fill="rgba(255,209,102,.22)" stroke="#ffd166" stroke-width="1.5"/><text x="576" y="201" font-size="11">SP-01 32.8 t/h needed (rated 25 ✗)</text>
+<rect x="570" y="186" width="308" height="22" fill="rgba(255,209,102,.22)" stroke="#ffd166" stroke-width="1.5"/><text x="576" y="201" font-size="11">SP-01 at 33 t/h ✓</text>
 <text x="0" y="233" font-size="12" font-weight="600">SH-02 bulky</text>
 <rect x="210" y="218" width="288" height="22" fill="rgba(158,195,240,.15)" stroke="#9ec3f0" stroke-width="1.2"/><text x="216" y="233" font-size="11">bulky 4.8 h/day</text>
 <text x="0" y="265" font-size="12" font-weight="600">Detection bays</text>
@@ -412,7 +412,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <text x="680" y="334" font-size="11" text-anchor="middle" class="amber">last shred 17:08 → next fill 07:00 = 13.9 h ≥ 12 h hold ✓</text>
     </svg>
     </div>
-    <p class="note">Bucket counts at 9 m³ and a 2-minute cycle (cycle time assumed). L2 feeds SH-01 in short spells (about 2.6 h of work a day). L1 feeds DH-01 in spells (about 1.8 h a day); L2 covers the hopper until L1 finishes turning on Mon/Wed/Fri. SH-02 has its own grab or feeder (assumed). SP-01 is shown in its 1,600 h window. At its rated 25 t/h it would need about 2,100 h.</p>
+    <p class="note">Bucket counts at 9 m³ and a 2-minute cycle (cycle time assumed). L2 feeds SH-01 in short spells (about 2.6 h of work a day). L1 feeds DH-01 in spells (about 1.8 h a day); L2 covers the hopper until L1 finishes turning on Mon/Wed/Fri. SH-02 has its own grab or feeder (assumed). SP-01 runs at 33 t/h in its 1,600 h window.</p>
   </section>
 
   <div class="grid2">
@@ -435,7 +435,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
           <tr><td class="no">11</td><td>Bulky delivered</td><td class="n">60,000</td><td class="n">1,154</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
           <tr><td class="no">12</td><td>Shredded bulky off-site</td><td class="n">60,000</td><td class="n">1,154</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
           <tr><td class="no">13</td><td>OS-01 → DH-01 dosing hopper (L1)</td><td class="n">52,485</td><td class="n">1,009</td><td class="n">84.6</td><td class="n">8,067</td><td class="n">149,957</td></tr>
-          <tr><td class="no">14</td><td>DH-01 → SP-01 · 1,600 h (needs 32.8 t/h; rated 25)</td><td class="n">52,485</td><td class="n">1,009</td><td class="n">84.6</td><td class="n">8,067</td><td class="n">149,957</td></tr>
+          <tr><td class="no">14</td><td>DH-01 → SP-01 at 33 t/h · 1,600 h</td><td class="n">52,485</td><td class="n">1,009</td><td class="n">84.6</td><td class="n">8,067</td><td class="n">149,957</td></tr>
           <tr><td class="no">15</td><td>SP-01 products / rejects (split TBC)</td><td class="n">52,485</td><td class="n">1,009</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
           <tr class="tot"><td class="no">Σ</td><td>MSW check: 10 + 6 + 8 = 1</td><td class="n">75,000</td><td class="n">1,442</td><td class="n"></td><td class="n"></td><td class="n"></td></tr>
         </tbody>
@@ -452,7 +452,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
         <li><b>SH-01 takes MSW only</b> (46.9 t/h, 12:00–17:08). <b>SH-02 takes bulky only</b> and must reach ≥ 38 t/h to fit 1,600 h. Each machine backs up the other.</li>
         <li><b>No battery picking.</b> BQ-01 Blazequel fire detection on the SH-01 outfeed belt (as at Portadown) catches ignitions at the shredder. The detection bays then catch delayed ignitions. All batteries (~75 t/yr at 1 kg/t) pass to the bays, tunnels and output.</li>
         <li>Detection bays: 4 × 343 m³ in <b>2 pairs, one pair per shredding day</b>. Shredding in the afternoon and filling in the morning keeps the peak to one batch (481 t) and gives ≥ 13.9 h of watch.</li>
-                <li><b>Output route:</b> L2 empties stage 2 fast (~94 t/h) into <b>OS-01 storage bays</b> (3 × 320 m³, peak 336 t). L1 feeds the <b>DH-01 dosing hopper</b> (60 m³, ~38 min), which meters SP-01. <b>In 1,600 h the line must average 32.8 t/h</b> to clear WTT's 52,485 t/yr. At its rated 25 t/h it clears only 40,000 t/yr, so either it runs ~2,100 h or it needs a faster line. Build 2 needs about 66 t/h. The tunnel can't feed the hopper directly because the turn needs it empty in ~3.6 h.</li>
+                <li><b>Output route:</b> L2 empties stage 2 fast (~94 t/h) into <b>OS-01 storage bays</b> (3 × 320 m³, peak 336 t). L1 feeds the <b>DH-01 dosing hopper</b> (60 m³, ~38 min), which meters <b>SP-01 at 33 t/h</b>: 33 × 1,600 h = 52,800 t/yr, which clears WTT's 52,485 t/yr with 0.6% margin. Build 2 needs a second 33 t/h line (or ~66 t/h). The tunnel can't feed the hopper directly because the turn needs it empty in ~3.6 h.</li>
         <li><b>Loaders:</b> with hopper feed, the total is 3,343 h/yr, so 2 loaders at ~1,670 h each (4% over 1,600) or 3.</li>
         <li>Heat plant sized to the staggered peak, 171 kW plus margin, not WTT's 257 kW. Fire water 1,632 m³ (stage 1 tunnel governs), with containment to match.</li>
         <li>Batteries 1 kg/t and the fire-water basis are interim. Replace them with Portadown detection and fire records and with NIEA/NIFRS guidance.</li>

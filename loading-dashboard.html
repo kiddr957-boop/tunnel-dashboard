@@ -389,7 +389,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["shredAvail", "SH-01 available", "h/yr", 1600, 50]
     ]},
     { title: "Secondary processing", open: true, fields: [
-      ["spRate", "Line rated throughput", "t/h", 25, 1],
+      ["spRate", "Line rated throughput", "t/h", 33, 1],
       ["spH", "Line running hours", "h/yr", 1600, 50],
       ["spStart", "Line starts", "hh (24 h)", 13, 0.5, true],
       ["hopperM3", "Dosing hopper volume", "m³", 60, 5, true]
@@ -413,7 +413,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v13";
+  const STORE = "tunnel_plan_v14";
   let state = { build: "b1", v: buildValues("b1") };
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
