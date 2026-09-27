@@ -241,24 +241,52 @@ ol.notes b { color: var(--amber); font-weight: 600; }
     <g class="tag"><circle cx="1240" cy="550" r="11"/><text x="1240" y="554">9</text></g>
     <text x="1320" y="640" font-size="10" class="soft" text-anchor="middle">size 171 kW + margin</text>
 
-    <!-- Output -->
-    <path class="flow" d="M970 450 H866"/>
+    <!-- Output: storage bay -> dosing hopper -> secondary processing -->
+    <path class="flow" d="M970 450 H880"/>
     <g class="tag"><circle cx="936" cy="433" r="11"/><text x="936" y="437">10</text></g>
     <g class="ld"><rect x="892" y="458" width="28" height="16" rx="2"/><text x="906" y="470">L2</text></g>
+    <text x="925" y="492" font-size="10" class="soft" text-anchor="middle">~94 t/h</text>
     <g>
-      <rect class="eq-fill" x="712" y="414" width="152" height="72"/>
-      <path class="eq" d="M722 476 Q760 436 800 476 Q830 446 854 476"/>
-      <text x="788" y="406" font-size="13" font-weight="700" text-anchor="middle">OS-01 OUTPUT STORE</text>
-      <text x="788" y="504" font-size="11" class="soft" text-anchor="middle">52,485 t/yr · DS 85%</text>
-      <text x="788" y="518" font-size="11" class="soft" text-anchor="middle">still battery-bearing: detection</text>
+      <text x="800" y="400" font-size="13" font-weight="700" text-anchor="middle">OS-01 STORAGE BAYS</text>
+      <path class="eq" d="M722 412 V482 H878 V412 M774 412 V482 M826 412 V482"/>
+      <path class="eq-fill" d="M726 482 Q748 446 770 482 Z"/>
+      <path class="eq-fill" d="M778 482 Q800 444 822 482 Z"/>
+      <path class="eq-fill" d="M830 482 Q852 452 874 482 Z"/>
+      <rect class="eq" x="788" y="410" width="22" height="10"/>
+      <text x="800" y="500" font-size="11" class="soft" text-anchor="middle">3 × 320 m³ · peak 336 t / 961 m³</text>
+      <text x="800" y="514" font-size="11" class="soft" text-anchor="middle">IR + deluge (battery-bearing)</text>
     </g>
-    <path class="flow" d="M712 450 H632"/>
+    <path class="flow" d="M722 447 H694"/>
+    <g class="tag"><circle cx="708" cy="430" r="11"/><text x="708" y="434">13</text></g>
+    <g class="ld"><rect x="694" y="456" width="28" height="16" rx="2"/><text x="708" y="468">L1</text></g>
     <g>
-      <rect class="eq-fill" x="532" y="422" width="98" height="56"/>
-      <path class="eq" d="M540 470 v-32 h34 v32 M574 444 h22 l12 12 v14"/>
-      <circle class="eq" cx="552" cy="474" r="6"/><circle class="eq" cx="598" cy="474" r="6"/>
-      <text x="581" y="412" font-size="13" font-weight="700" text-anchor="middle">DISPATCH</text>
-      <text x="581" y="498" font-size="11" class="soft" text-anchor="middle">40 trucks/wk</text>
+      <text x="642" y="400" font-size="13" font-weight="700" text-anchor="middle">DH-01 DOSING HOPPER</text>
+      <path class="eq-fill" d="M598 418 H690 L668 470 H620 Z"/>
+      <path class="eq" d="M612 470 H676 M612 478 H676" stroke-dasharray="5 3"/>
+      <text x="644" y="444" font-size="11" text-anchor="middle">60 m³</text>
+      <text x="644" y="496" font-size="11" class="soft" text-anchor="middle">walking floor</text>
+      <text x="644" y="510" font-size="11" class="soft" text-anchor="middle">≈ 38 min buffer</text>
+    </g>
+    <path class="flow" d="M620 474 V530 H530"/>
+    <g class="tag"><circle cx="590" cy="530" r="11"/><text x="590" y="534">14</text></g>
+    <g>
+      <text x="466" y="400" font-size="13" font-weight="700" text-anchor="middle">SP-01 SECONDARY</text>
+      <text x="466" y="414" font-size="13" font-weight="700" text-anchor="middle">PROCESSING</text>
+      <rect class="eq-fill" x="402" y="424" width="128" height="122"/>
+      <circle class="eq" cx="440" cy="470" r="22"/><path class="eq" d="M424 456 L456 484 M424 484 L456 456"/>
+      <rect class="eq" x="474" y="452" width="46" height="18"/><text x="497" y="465" font-size="9" text-anchor="middle">MAG</text>
+      <rect class="eq" x="474" y="476" width="46" height="18"/><text x="497" y="489" font-size="9" text-anchor="middle">ECS</text>
+      <text x="466" y="516" font-size="10" class="soft" text-anchor="middle">screen · magnet · eddy</text>
+      <text x="466" y="530" font-size="10" class="soft" text-anchor="middle">32.8 t/h · 13:00–18:08</text>
+      <text x="466" y="562" font-size="10" class="amber" text-anchor="middle">BQ on belts (TBC)</text>
+    </g>
+    <path class="flow" d="M402 470 H352"/>
+    <g class="tag"><circle cx="376" cy="453" r="11"/><text x="376" y="457">15</text></g>
+    <g>
+      <rect class="eq" x="250" y="440" width="100" height="62"/>
+      <text x="300" y="462" font-size="12" font-weight="700" text-anchor="middle">PRODUCTS</text>
+      <text x="300" y="478" font-size="11" class="soft" text-anchor="middle">+ rejects · metals</text>
+      <text x="300" y="494" font-size="11" class="soft" text-anchor="middle">split TBC</text>
     </g>
 
     <!-- ============ BULKY LINE ============ -->
@@ -299,9 +327,9 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <text x="620" y="632" font-size="11" class="soft" text-anchor="middle">9,066 l/min · 3 h</text>
       <text x="620" y="646" font-size="11" class="soft" text-anchor="middle">1,632 m³ · tunnel governs</text>
     </g>
-    <path class="util" d="M620 596 V300 H780 V222"/>
+    <path class="util" d="M560 596 V330 H780 V222"/>
     <path class="util" d="M700 610 H720 V560 H1000 V520"/>
-    <text x="790" y="296" font-size="10" class="soft">to bay deluge + monitors</text>
+    <text x="790" y="326" font-size="10" class="soft">to bay deluge + monitors</text>
     <text x="1004" y="552" font-size="10" class="soft">to tunnel spigots</text>
     <g>
       <rect class="eq" x="540" y="690" width="160" height="58"/>
@@ -332,7 +360,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <text x="1042" y="742" font-size="11" class="soft">CLIENT</text><text x="1090" y="742" font-size="12" font-weight="600">RIVERRIDGE</text>
       <text x="1214" y="742" font-size="11" class="soft">BASIS</text><text x="1256" y="742" font-size="12" font-weight="600">WTT 26029 R1</text>
       <text x="1042" y="772" font-size="11" class="soft">DWG</text><text x="1076" y="772" font-size="12" font-weight="600" class="mono">26029-PFD-001</text>
-      <text x="1214" y="772" font-size="11" class="soft">REV</text><text x="1244" y="772" font-size="12" font-weight="600" class="mono">C · 27/09/26</text>
+      <text x="1214" y="772" font-size="11" class="soft">REV</text><text x="1244" y="772" font-size="12" font-weight="600" class="mono">D · 27/09/26</text>
       <text x="1042" y="798" font-size="11" class="soft">DRAWN</text><text x="1086" y="798" font-size="11">Claude (for review)</text>
       <text x="1214" y="798" font-size="11" class="soft">CHK</text><text x="1244" y="798" font-size="11">______ · SCALE NTS</text>
     </g>
@@ -343,44 +371,48 @@ ol.notes b { color: var(--amber); font-weight: 600; }
   <section class="panel">
     <h2>Daily rhythm · Mon–Sat</h2>
     <div class="tblwrap">
-    <svg class="pfd" viewBox="0 0 1024 300" style="min-width:760px" role="img" aria-label="Daily timeline for loaders, shredders and bays">
+    <svg class="pfd" viewBox="0 0 1024 340" style="min-width:760px" role="img" aria-label="Daily timeline for loaders, shredders, secondary processing and bays">
       <g font-size="11">
-        <line x1="150" y1="18" x2="150" y2="250" stroke="rgba(232,241,255,.18)"/><text x="150" y="12" text-anchor="middle" class="soft">06:00</text>
-        <line x1="210" y1="18" x2="210" y2="250" stroke="rgba(232,241,255,.18)"/><text x="210" y="12" text-anchor="middle" class="soft">07:00</text>
-        <line x1="270" y1="18" x2="270" y2="250" stroke="rgba(232,241,255,.18)"/><text x="270" y="12" text-anchor="middle" class="soft">08:00</text>
-        <line x1="330" y1="18" x2="330" y2="250" stroke="rgba(232,241,255,.18)"/><text x="330" y="12" text-anchor="middle" class="soft">09:00</text>
-        <line x1="390" y1="18" x2="390" y2="250" stroke="rgba(232,241,255,.18)"/><text x="390" y="12" text-anchor="middle" class="soft">10:00</text>
-        <line x1="450" y1="18" x2="450" y2="250" stroke="rgba(232,241,255,.18)"/><text x="450" y="12" text-anchor="middle" class="soft">11:00</text>
-        <line x1="510" y1="18" x2="510" y2="250" stroke="rgba(232,241,255,.18)"/><text x="510" y="12" text-anchor="middle" class="soft">12:00</text>
-        <line x1="570" y1="18" x2="570" y2="250" stroke="rgba(232,241,255,.18)"/><text x="570" y="12" text-anchor="middle" class="soft">13:00</text>
-        <line x1="630" y1="18" x2="630" y2="250" stroke="rgba(232,241,255,.18)"/><text x="630" y="12" text-anchor="middle" class="soft">14:00</text>
-        <line x1="690" y1="18" x2="690" y2="250" stroke="rgba(232,241,255,.18)"/><text x="690" y="12" text-anchor="middle" class="soft">15:00</text>
-        <line x1="750" y1="18" x2="750" y2="250" stroke="rgba(232,241,255,.18)"/><text x="750" y="12" text-anchor="middle" class="soft">16:00</text>
-        <line x1="810" y1="18" x2="810" y2="250" stroke="rgba(232,241,255,.18)"/><text x="810" y="12" text-anchor="middle" class="soft">17:00</text>
-        <line x1="870" y1="18" x2="870" y2="250" stroke="rgba(232,241,255,.18)"/><text x="870" y="12" text-anchor="middle" class="soft">18:00</text>
-        <line x1="930" y1="18" x2="930" y2="250" stroke="rgba(232,241,255,.18)"/><text x="930" y="12" text-anchor="middle" class="soft">19:00</text>
-        <line x1="990" y1="18" x2="990" y2="250" stroke="rgba(232,241,255,.18)"/><text x="990" y="12" text-anchor="middle" class="soft">20:00</text>
+        <line x1="150" y1="18" x2="150" y2="282" stroke="rgba(232,241,255,.18)"/><text x="150" y="12" text-anchor="middle" class="soft">06:00</text>
+<line x1="210" y1="18" x2="210" y2="282" stroke="rgba(232,241,255,.18)"/><text x="210" y="12" text-anchor="middle" class="soft">07:00</text>
+<line x1="270" y1="18" x2="270" y2="282" stroke="rgba(232,241,255,.18)"/><text x="270" y="12" text-anchor="middle" class="soft">08:00</text>
+<line x1="330" y1="18" x2="330" y2="282" stroke="rgba(232,241,255,.18)"/><text x="330" y="12" text-anchor="middle" class="soft">09:00</text>
+<line x1="390" y1="18" x2="390" y2="282" stroke="rgba(232,241,255,.18)"/><text x="390" y="12" text-anchor="middle" class="soft">10:00</text>
+<line x1="450" y1="18" x2="450" y2="282" stroke="rgba(232,241,255,.18)"/><text x="450" y="12" text-anchor="middle" class="soft">11:00</text>
+<line x1="510" y1="18" x2="510" y2="282" stroke="rgba(232,241,255,.18)"/><text x="510" y="12" text-anchor="middle" class="soft">12:00</text>
+<line x1="570" y1="18" x2="570" y2="282" stroke="rgba(232,241,255,.18)"/><text x="570" y="12" text-anchor="middle" class="soft">13:00</text>
+<line x1="630" y1="18" x2="630" y2="282" stroke="rgba(232,241,255,.18)"/><text x="630" y="12" text-anchor="middle" class="soft">14:00</text>
+<line x1="690" y1="18" x2="690" y2="282" stroke="rgba(232,241,255,.18)"/><text x="690" y="12" text-anchor="middle" class="soft">15:00</text>
+<line x1="750" y1="18" x2="750" y2="282" stroke="rgba(232,241,255,.18)"/><text x="750" y="12" text-anchor="middle" class="soft">16:00</text>
+<line x1="810" y1="18" x2="810" y2="282" stroke="rgba(232,241,255,.18)"/><text x="810" y="12" text-anchor="middle" class="soft">17:00</text>
+<line x1="870" y1="18" x2="870" y2="282" stroke="rgba(232,241,255,.18)"/><text x="870" y="12" text-anchor="middle" class="soft">18:00</text>
+<line x1="930" y1="18" x2="930" y2="282" stroke="rgba(232,241,255,.18)"/><text x="930" y="12" text-anchor="middle" class="soft">19:00</text>
+<line x1="990" y1="18" x2="990" y2="282" stroke="rgba(232,241,255,.18)"/><text x="990" y="12" text-anchor="middle" class="soft">20:00</text>
       </g>
       <text x="0" y="41" font-size="12" font-weight="600">L1 · Mon/Wed/Fri</text>
-      <rect x="424" y="26" width="244" height="22" fill="rgba(232,241,255,.22)" stroke="#e8f1ff" stroke-width="1.5"/><text x="430" y="41" font-size="11">② turn T1→T4 · 122 buckets</text>
-      <text x="0" y="73" font-size="12" font-weight="600">L2 · Mon/Wed/Fri</text>
-      <rect x="210" y="58" width="214" height="22" fill="rgba(232,241,255,.22)" stroke="#e8f1ff" stroke-width="1.5"/><text x="216" y="73" font-size="11">① empty T4 → OS-01 · 107 b</text>
-      <rect x="510" y="58" width="308" height="22" fill="rgba(158,195,240,.15)" stroke="#9ec3f0" stroke-width="1.2"/><text x="516" y="73" font-size="11">feed SH-01</text>
-      <text x="0" y="105" font-size="12" font-weight="600">L1 · Tue/Thu/Sat</text>
-      <rect x="210" y="90" width="306" height="22" fill="rgba(232,241,255,.22)" stroke="#e8f1ff" stroke-width="1.5"/><text x="216" y="105" font-size="11">③ fill T1 from pairs A + B · 153 b</text>
-      <text x="0" y="137" font-size="12" font-weight="600">L2 · Tue/Thu/Sat</text>
-      <rect x="510" y="122" width="308" height="22" fill="rgba(158,195,240,.15)" stroke="#9ec3f0" stroke-width="1.2"/><text x="516" y="137" font-size="11">feed SH-01</text>
-      <text x="0" y="169" font-size="12" font-weight="600">SH-01 MSW</text>
-      <rect x="510" y="154" width="308" height="22" fill="rgba(255,209,102,.22)" stroke="#ffd166" stroke-width="1.5"/><text x="516" y="169" font-size="11">shred 240 t → next empty pair</text>
-      <text x="0" y="201" font-size="12" font-weight="600">SH-02 bulky</text>
-      <rect x="210" y="186" width="288" height="22" fill="rgba(158,195,240,.15)" stroke="#9ec3f0" stroke-width="1.2"/><text x="216" y="201" font-size="11">bulky 4.8 h/day</text>
-      <text x="0" y="233" font-size="12" font-weight="600">Detection bays</text>
-      <rect x="150" y="218" width="840" height="22" fill="none" stroke="#9ec3f0" stroke-width="1.3" stroke-dasharray="6 4"/><text x="156" y="233" font-size="11">IR cameras + auto deluge, 24/7</text>
-      <path d="M457 262 C 600 290, 800 290, 900 262" fill="none" stroke="#ffd166" stroke-width="1.3" stroke-dasharray="4 4"/>
-      <text x="680" y="296" font-size="11" text-anchor="middle" class="amber">last shred 17:08 → next fill 07:00 = 13.9 h ≥ 12 h hold ✓</text>
+<rect x="424" y="26" width="244" height="22" fill="rgba(232,241,255,.22)" stroke="#e8f1ff" stroke-width="1.5"/><text x="430" y="41" font-size="11">② turn T1→T4 · 122 b</text>
+<rect x="668" y="26" width="210" height="22" fill="rgba(158,195,240,.15)" stroke="#9ec3f0" stroke-width="1.2"/><text x="674" y="41" font-size="11">feed DH-01</text>
+<text x="0" y="73" font-size="12" font-weight="600">L2 · Mon/Wed/Fri</text>
+<rect x="210" y="58" width="214" height="22" fill="rgba(232,241,255,.22)" stroke="#e8f1ff" stroke-width="1.5"/><text x="216" y="73" font-size="11">① empty T4 → OS-01 · 107 b</text>
+<rect x="510" y="58" width="308" height="22" fill="rgba(158,195,240,.15)" stroke="#9ec3f0" stroke-width="1.2"/><text x="516" y="73" font-size="11">feed SH-01 (+ DH-01 to 14:38)</text>
+<text x="0" y="105" font-size="12" font-weight="600">L1 · Tue/Thu/Sat</text>
+<rect x="210" y="90" width="306" height="22" fill="rgba(232,241,255,.22)" stroke="#e8f1ff" stroke-width="1.5"/><text x="216" y="105" font-size="11">③ fill T1 from pairs A + B · 153 b</text>
+<rect x="570" y="90" width="308" height="22" fill="rgba(158,195,240,.15)" stroke="#9ec3f0" stroke-width="1.2"/><text x="576" y="105" font-size="11">feed DH-01</text>
+<text x="0" y="137" font-size="12" font-weight="600">L2 · Tue/Thu/Sat</text>
+<rect x="510" y="122" width="308" height="22" fill="rgba(158,195,240,.15)" stroke="#9ec3f0" stroke-width="1.2"/><text x="516" y="137" font-size="11">feed SH-01</text>
+<text x="0" y="169" font-size="12" font-weight="600">SH-01 MSW</text>
+<rect x="510" y="154" width="308" height="22" fill="rgba(255,209,102,.22)" stroke="#ffd166" stroke-width="1.5"/><text x="516" y="169" font-size="11">shred 240 t → next empty pair</text>
+<text x="0" y="201" font-size="12" font-weight="600">DH-01 → SP-01</text>
+<rect x="570" y="186" width="308" height="22" fill="rgba(255,209,102,.22)" stroke="#ffd166" stroke-width="1.5"/><text x="576" y="201" font-size="11">secondary processing 32.8 t/h</text>
+<text x="0" y="233" font-size="12" font-weight="600">SH-02 bulky</text>
+<rect x="210" y="218" width="288" height="22" fill="rgba(158,195,240,.15)" stroke="#9ec3f0" stroke-width="1.2"/><text x="216" y="233" font-size="11">bulky 4.8 h/day</text>
+<text x="0" y="265" font-size="12" font-weight="600">Detection bays</text>
+<rect x="150" y="250" width="840" height="22" fill="none" stroke="#9ec3f0" stroke-width="1.3" stroke-dasharray="6 4"/><text x="156" y="265" font-size="11">IR cameras + auto deluge, 24/7</text>
+      <path d="M457 294 C 600 322, 800 322, 900 294" fill="none" stroke="#ffd166" stroke-width="1.3" stroke-dasharray="4 4"/>
+      <text x="680" y="334" font-size="11" text-anchor="middle" class="amber">last shred 17:08 → next fill 07:00 = 13.9 h ≥ 12 h hold ✓</text>
     </svg>
     </div>
-    <p class="note">Bucket counts at 9 m³ and a 2-minute cycle (cycle time assumed). L2 feeds SH-01 in short spells during the shredding window (about 2.6 h of loader work). SH-02 is assumed to have its own grab or feeder.</p>
+    <p class="note">Bucket counts at 9 m³ and a 2-minute cycle (cycle time assumed). L2 feeds SH-01 in short spells (about 2.6 h of work a day). L1 feeds DH-01 in spells (about 1.8 h a day); L2 covers the hopper until L1 finishes turning on Mon/Wed/Fri. SH-02 has its own grab or feeder (assumed). SP-01 line hours (1,600 h/yr) are assumed.</p>
   </section>
 
   <div class="grid2">
@@ -399,9 +431,12 @@ ol.notes b { color: var(--amber); font-weight: 600; }
           <tr><td class="no">7</td><td>Turn stage 1 → stage 2 (3 × 384 t/wk)</td><td class="n">59,910</td><td class="n">1,152</td><td class="n">75.4</td><td class="n">14,728</td><td class="n">171,171</td></tr>
           <tr><td class="no">8</td><td>Stage 2 off-gas: water + degr. + heat evap.</td><td class="n">7,425</td><td class="n">143</td><td class="n">–</td><td class="n">6,661</td><td class="n">–</td></tr>
           <tr><td class="no">9</td><td>Additional heat (kWh/yr)</td><td class="n">1,282,844</td><td class="n">24,670</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
-          <tr><td class="no">10</td><td>Stage 2 output (3 × 336 t/wk)</td><td class="n">52,485</td><td class="n">1,009</td><td class="n">84.6</td><td class="n">8,067</td><td class="n">149,957</td></tr>
+          <tr><td class="no">10</td><td>Stage 2 output → OS-01 storage bays (3 × 336 t/wk)</td><td class="n">52,485</td><td class="n">1,009</td><td class="n">84.6</td><td class="n">8,067</td><td class="n">149,957</td></tr>
           <tr><td class="no">11</td><td>Bulky delivered</td><td class="n">60,000</td><td class="n">1,154</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
           <tr><td class="no">12</td><td>Shredded bulky off-site</td><td class="n">60,000</td><td class="n">1,154</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
+          <tr><td class="no">13</td><td>OS-01 → DH-01 dosing hopper (L1)</td><td class="n">52,485</td><td class="n">1,009</td><td class="n">84.6</td><td class="n">8,067</td><td class="n">149,957</td></tr>
+          <tr><td class="no">14</td><td>DH-01 → SP-01 at 32.8 t/h</td><td class="n">52,485</td><td class="n">1,009</td><td class="n">84.6</td><td class="n">8,067</td><td class="n">149,957</td></tr>
+          <tr><td class="no">15</td><td>SP-01 products / rejects (split TBC)</td><td class="n">52,485</td><td class="n">1,009</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
           <tr class="tot"><td class="no">Σ</td><td>MSW check: 10 + 6 + 8 = 1</td><td class="n">75,000</td><td class="n">1,442</td><td class="n"></td><td class="n"></td><td class="n"></td></tr>
         </tbody>
       </table>
@@ -417,7 +452,8 @@ ol.notes b { color: var(--amber); font-weight: 600; }
         <li><b>SH-01 takes MSW only</b> (46.9 t/h, 12:00–17:08). <b>SH-02 takes bulky only</b> and must reach ≥ 38 t/h to fit 1,600 h. Each machine backs up the other.</li>
         <li><b>No battery picking.</b> BQ-01 Blazequel fire detection on the SH-01 outfeed belt (as at Portadown) catches ignitions at the shredder. The detection bays then catch delayed ignitions. All batteries (~75 t/yr at 1 kg/t) pass to the bays, tunnels and output.</li>
         <li>Detection bays: 4 × 343 m³ in <b>2 pairs, one pair per shredding day</b>. Shredding in the afternoon and filling in the morning keeps the peak to one batch (481 t) and gives ≥ 13.9 h of watch.</li>
-        <li><b>2 loaders</b> (9 m³): L1 tunnels ~1,430 h/yr, L2 shredder feed + stage 2 emptying ~1,360 h/yr. Both are within 1,600 h (2-minute cycle assumed).</li>
+                <li><b>Output route:</b> L2 empties stage 2 fast (~94 t/h) into <b>OS-01 storage bays</b> (3 × 320 m³, peak 336 t). L1 feeds the <b>DH-01 dosing hopper</b> (60 m³, ~38 min), which meters SP-01 at 32.8 t/h. The tunnel can't feed the hopper directly because the turn needs it empty in ~3.6 h.</li>
+        <li><b>Loaders:</b> with hopper feed, the total is 3,343 h/yr, so 2 loaders at ~1,670 h each (4% over 1,600) or 3.</li>
         <li>Heat plant sized to the staggered peak, 171 kW plus margin, not WTT's 257 kW. Fire water 1,632 m³ (stage 1 tunnel governs), with containment to match.</li>
         <li>Batteries 1 kg/t and the fire-water basis are interim. Replace them with Portadown detection and fire records and with NIEA/NIFRS guidance.</li>
       </ol>
