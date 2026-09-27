@@ -385,7 +385,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     ]},
     { title: "Fire · detection bay", open: true, fields: [
       ["holdH", "Hold before tunnel", "h", 24, 12],
-      ["bayWall", "Bay wall height (average)", "m", 3.8, 0.1],
+      ["bayWall", "Bay wall height", "m", 4.3, 0.1],
       ["bayFb", "Pile below wall top", "m", 0.5, 0.1],
       ["pileMax", "Max pile volume", "m³", 450, 10, true],
       ["dwellMax", "Max bay residence", "days", 3, 0.5, true],
@@ -400,7 +400,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v7";
+  const STORE = "tunnel_plan_v8";
   let state = { build: "b1", v: buildValues("b1") };
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
