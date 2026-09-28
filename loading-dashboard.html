@@ -204,6 +204,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   <div class="toolbar">
     <div class="seg" id="buildSeg" role="group" aria-label="Build phase">
       <button data-build="b1">Build 1 · 6 tunnels · 75 kt</button>
+      <button data-build="b8">Build 1 · 8 tunnels · 75 kt</button>
       <button data-build="b2">Build 2 · 12 tunnels · 150 kt</button>
       <button data-build="custom" disabled>Custom</button>
     </div>
@@ -309,8 +310,8 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     </section>
 
     <section class="card">
-      <h2>Build 1 vs Build 2</h2>
-      <p class="sub">Both build phases run with your current density, tunnel, equipment and fire inputs.</p>
+      <h2>Layout comparison</h2>
+      <p class="sub">The 6-tunnel and 8-tunnel WTT layouts for 75 kt, and Build 2, all run with your current density, equipment and fire inputs.</p>
       <div class="tblwrap"><table id="cmpTable" class="cmp"></table></div>
     </section>
 
@@ -338,14 +339,21 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const WTT = {
     Q: 75000, evap1: 13022, deg1: 2068, out1: 59910, DS1: 75, evap2: 4814, deg2: 764,
     heatEvap: 1847, out2: 52486, DS2: 84, reduction: 30.02, kWh: 1282814,
-    p1: { t: 481, m3: 1374, fill: 4.46 }, p2: { t: 384, m3: 1097, fill: 4.35 }
+    p1: { t: 481, m3: 1374, fill: 4.46 }, p2: { t: 384, m3: 1097, fill: 4.35 },
+    // WTT 4-tunnel sheet (4 × 31 m stage 1, 4 × 25 m stage 2)
+    p1_4: { t: 361, m3: 1030, fill: 4.37 }, p2_4: { t: 288, m3: 823, fill: 4.38 }
   };
   const RATE = {
     e1: 13022 / 27750 * 100, d1: 2068 / 20790 * 100,
     e2: 4814 / 14728 * 100,  d2: 764 / 18722 * 100,
     kw: 1282814 / (52 * 3 * 4 * 24) // kW per heated tunnel
   };
-  const BUILDS = { b1: { Q: 75000, N: 3 }, b2: { Q: 150000, N: 6 } };
+  const BUILDS = {
+    b1: { Q: 75000, N: 3, L1: 40, L2: 33, kw: +RATE.kw.toFixed(2) },
+    b8: { Q: 75000, N: 4, L1: 31, L2: 25, kw: +(RATE.kw * 3 / 4).toFixed(2) }, // same heat spread over 4 heated tunnels
+    b2: { Q: 150000, N: 6, L1: 40, L2: 33, kw: +RATE.kw.toFixed(2) }
+  };
+  const BUILD_LABEL = { b1: "6 tunnels · 75 kt", b8: "8 tunnels · 75 kt", b2: "12 tunnels · 150 kt" };
 
   // ---------- Input schema: [key, label, unit, default, step, assumed] ----------
   const GROUPS = [
@@ -413,7 +421,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v14";
+  const STORE = "tunnel_plan_v15";
   let state = { build: "b1", v: buildValues("b1") };
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
@@ -463,12 +471,16 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     r.tOut = tOut;
     r.eff1 = eff1; r.eff2 = eff2;
 
-    // Weekly plan: turn Mon/Wed/Fri, refill next working day (Tue/Thu/Sat)
-    const TURN = [0, 2, 4];
+    // Weekly plan: each stage 1 tunnel turns once a week into an emptied stage 2 tunnel and is refilled the next working day.
+    // 3 tunnels: turn Mon/Wed/Fri. 4 tunnels: turn Mon/Tue/Thu/Fri (refill Tue/Wed/Fri/Sat). Larger builds double up.
+    const PATTERN = { 3: [0, 2, 4], 4: [0, 1, 3, 4] };
+    const base = PATTERN[N] || (N % 4 === 0 ? PATTERN[4] : PATTERN[3]);
     r.plan = Array.from({ length: N }, (_, i) => {
-      const turn = TURN[Math.min(2, Math.floor(i * 3 / N))];
+      const turn = base[Math.min(base.length - 1, Math.floor(i * base.length / N))];
       return { s1: i, s2: N + i, turn, refill: turn + 1 };
     });
+    r.turnDays = [...new Set(r.plan.map(p => p.turn))].map(d => DAYS[d]).join("/");
+    r.fillDays = [...new Set(r.plan.map(p => p.refill))].map(d => DAYS[d]).join("/");
     // Residence: stage 1 from refill to next turn; stage 2 from turn to next turn
     r.res1 = Math.min(...r.plan.map(p => (p.turn + 7 - p.refill) % 7 || 7));
     r.res2 = 7;
@@ -640,14 +652,14 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     densRange.addEventListener("input", () => { state.v.rho = +densRange.value / 1000; render(); });
   }
   function matchBuild(v) {
-    for (const b of ["b1", "b2"]) {
+    for (const b of ["b1", "b8", "b2"]) {
       const p = buildValues(b);
       if (Object.keys(p).every(k => k === "rho" || Math.abs(p[k] - v[k]) < 1e-9)) return b;
     }
     return "custom";
   }
   function syncInputs() {
-    const base = buildValues(state.build === "b2" ? "b2" : "b1");
+    const base = buildValues(BUILDS[state.build] ? state.build : "b1");
     inputsEl.querySelectorAll("input[data-k]").forEach(inp => {
       const k = inp.dataset.k;
       if (document.activeElement !== inp) inp.value = state.v[k];
@@ -695,10 +707,10 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   function renderDesign(v, r) {
     const b = r.bay, fr = r.fire, bays = fr.bays, perBay = fr.bayM3 / bays;
     const rows = [
-      ["Tunnels", `${r.N} + ${r.N} (WTT layout): stage 1 ${f0(v.L1)} m, stage 2 ${f0(v.L2)} m. ${f0(r.s1.t)} t per fill at ${f2(r.s1.fill)} m (limit ${f2(v.maxFill)} m). Turns Mon/Wed/Fri into a stage 2 tunnel emptied the same morning.`],
+      ["Tunnels", `${r.N} + ${r.N} (WTT layout): stage 1 ${f0(v.L1)} m, stage 2 ${f0(v.L2)} m. ${f0(r.s1.t)} t per fill at ${f2(r.s1.fill)} m (limit ${f2(v.maxFill)} m). Turns ${r.turnDays} into a stage 2 tunnel emptied the same morning.`],
       ["Shredding", r.shred.sep ? `SH-01 for MSW only: ${f1(r.shred.rate)} t/h, ${hh(v.shredStart)}–${hh(v.shredStart + b.window)} Mon–Sat, Blazequel fire detection on the outfeed belt (no battery picking station). SH-02 for bulky waste: ≥ ${f0(v.bulkyT / v.sh2Avail)} t/h (${f0(r.shred.bulkyH)} h at ${f0(v.bulkyRate)} t/h). Each machine backs up the other.` : `One shredder for MSW and bulky waste: see the shredder warning.`],
       ["Detection bays", `${bays} bays of ~${f0(perBay)} m³. Each day's shredding goes into its own group of bays. Pile ${f1(r.bayH)} m (${f1(v.bayFb)} m below the ${f1(v.bayWall)} m wall), ${f0(fr.bayArea)} m² in total. Hold ≥ ${f0(v.holdH)} h; actual watch ${f0(b.minAge)}–${f0(b.maxAge)} h. IR cameras with automatic monitor/deluge, and a quarantine bay for one truckload.`],
-      ["Daily rhythm", `07:00 L1 fills (Tue/Thu/Sat) or turns (Mon/Wed/Fri). ${hh(v.shredStart)} SH-01 shreds into the emptied bays. Morning loading and afternoon shredding never work in the same bays at the same time.`],
+      ["Daily rhythm", `07:00 L1 fills (${r.fillDays}) and/or turns (${r.turnDays}). ${hh(v.shredStart)} SH-01 shreds into the emptied bays. Morning loading and afternoon shredding never work in the same bays at the same time.`],
       ["Output route", `Stage 2 → <b>OS-01 storage bay</b> (peak ${f0(r.os.peak)} t / ${f0(r.os.m3)} m³, ${r.os.bays} bay${r.os.bays > 1 ? "s" : ""}, ${f0(r.os.area)} m² at ${f1(r.bayH)} m) → <b>DH-01 dosing hopper</b> (${f0(v.hopperM3)} m³ ≈ ${f0(r.os.hopperMin)} min of feed) → <b>SP-01 secondary processing</b> ${f0(v.spH)} h/yr, needs ${f1(r.os.spRate)} t/h average (rated ${f0(v.spRate)} t/h${v.spRate < r.os.spRate ? " ✗" : " ✓"}), ${hh(v.spStart)}–${hh(v.spStart + r.os.spHday)}. A tunnel can't go straight to the hopper: emptying runs at ~${f0(r.os.emptyRate)} t/h so the turn can start, against ${f1(r.os.spRate)} t/h on the line.`],
       ["Loaders", (() => { const n = r.loaderN, per = r.loaderTotal / Math.max(1, n - 1);
         return `${f0(r.loaderTotal)} h/yr of loader work (${f0(v.bucket)} m³): tunnels ${f0(r.L1)} h, shredder feed + stage 2 emptying ${f0(r.L2)} h, hopper feed ${f0(r.os.feedH)} h. ` +
@@ -962,10 +974,13 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   function renderValidation(v, r) {
     const k = v.Q / WTT.Q;
     document.getElementById("valSub").textContent = k === 1
-      ? "The model recomputes the WTT 3-tunnel sheet. The Δ column should be ≈0 at 350 kg/m³."
+      ? `The model recomputes the WTT ${v.N}-tunnel sheet. The Δ column should be ≈0 at 350 kg/m³.`
       : `WTT's sheet is for 75 kt. Mass flows are scaled ×${f2(k)} for comparison; per-tunnel values stay the same when tunnels double with throughput.`;
     if (Math.abs(v.rho - 0.35) > 1e-9) document.getElementById("valSub").textContent += " Per-tunnel volume and height rows are hidden because WTT used 350 kg/m³.";
-    const perT = Math.abs(v.Q / v.N - 25000) < 1e-6 && Math.abs(v.rho - 0.35) < 1e-9;
+    const d35 = Math.abs(v.rho - 0.35) < 1e-9;
+    const ref = d35 && Math.abs(v.Q / v.N - 25000) < 1e-6 && v.L1 === 40 && v.L2 === 33 ? { p1: WTT.p1, p2: WTT.p2 }
+      : d35 && Math.abs(v.Q / v.N - 18750) < 1e-6 && v.L1 === 31 && v.L2 === 25 ? { p1: WTT.p1_4, p2: WTT.p2_4 } : null;
+    const perT = !!ref;
     const rows = [
       ["Stage 1 water evaporation", WTT.evap1 * k, r.mb.evap1, "t/yr", 0],
       ["Stage 1 organics degradation", WTT.deg1 * k, r.mb.deg1, "t/yr", 0],
@@ -976,12 +991,12 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["Total mass reduction", WTT.reduction, r.mb.reduction, "%", 2],
       ["Heat input", WTT.kWh * k, r.mb.kWh, "kWh/yr", 0]
     ].concat(perT ? [
-      ["S1 weight / tunnel", WTT.p1.t, r.s1.t, "t", 0],
-      ["S1 volume / tunnel", WTT.p1.m3, r.s1.m3, "m³", 0],
-      ["S1 filling height", WTT.p1.fill, r.s1.fill, "m", 2],
-      ["S2 weight / tunnel", WTT.p2.t, r.s2.t, "t", 0],
-      ["S2 volume / tunnel", WTT.p2.m3, r.s2.m3, "m³", 0],
-      ["S2 filling height", WTT.p2.fill, r.s2.fill, "m", 2]
+      ["S1 weight / tunnel", ref.p1.t, r.s1.t, "t", 0],
+      ["S1 volume / tunnel", ref.p1.m3, r.s1.m3, "m³", 0],
+      ["S1 filling height", ref.p1.fill, r.s1.fill, "m", 2],
+      ["S2 weight / tunnel", ref.p2.t, r.s2.t, "t", 0],
+      ["S2 volume / tunnel", ref.p2.m3, r.s2.m3, "m³", 0],
+      ["S2 filling height", ref.p2.fill, r.s2.fill, "m", 2]
     ] : []);
     document.getElementById("valTable").innerHTML =
       `<thead><tr><th>Item</th><th class="n">WTT</th><th class="n">Model</th><th class="n">Δ</th><th></th></tr></thead><tbody>` +
@@ -994,27 +1009,28 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
 
   // ---------- Build comparison ----------
   function renderCompare(v) {
-    const a = compute(Object.assign({}, v, BUILDS.b1)), b = compute(Object.assign({}, v, BUILDS.b2));
+    const keys = ["b1", "b8", "b2"];
+    const R = keys.map(k => compute(Object.assign({}, v, BUILDS[k])));
     const rows = [
-      ["Throughput (t/yr)", a.v.Q, b.v.Q, 0],
-      ["Tunnels (stage 1 + stage 2)", `${a.N} + ${a.N} (T1–T${2 * a.N})`, `${b.N} + ${b.N} (T1–T${2 * b.N})`],
-      ["Turn days", "Mon · Wed · Fri", "Mon · Wed · Fri (2 tunnels each)"],
-      ["Stage 1 load per tunnel (t)", a.s1.t, b.s1.t, 0],
-      ["Stage 1 filling height (m)", a.s1.fill, b.s1.fill, 2],
-      ["Loader time, peak day (h)", a.maxLoaderH, b.maxLoaderH, 1],
-      ["Loaders needed", a.loaders, b.loaders, 0],
-      ["Shredder MSW rate (t/h)", a.shred.rate, b.shred.rate, 1],
-      ["Shredder hours: MSW / bulky (h/yr)", `${a.shred.mswH > 0 ? f0(a.shred.mswH) : "none"} / ${f0(a.shred.bulkyH)}`, `${b.shred.mswH > 0 ? f0(b.shred.mswH) : "none"} / ${f0(b.shred.bulkyH)}`],
-      ["Loader hours needed (h/yr)", a.loaderYrNeed, b.loaderYrNeed, 0],
-      ["Outbound trucks / week", a.days.reduce((s, x) => s + x.trucksOut, 0), b.days.reduce((s, x) => s + x.trucksOut, 0), 1],
-      ["Detection bay peak (m³)", a.fire.bayM3, b.fire.bayM3, 0],
-      ["Detection bay floor (m²)", a.fire.bayArea, b.fire.bayArea, 0],
-      ["Fire bays ≤ pile limit", a.fire.bays, b.fire.bays, 0],
-      ["Heat peak, staggered (kW)", a.peakKw, b.peakKw, 0],
-      ["Output (t/yr)", a.mb.out2, b.mb.out2, 0]
+      ["Throughput (t/yr)", x => x.v.Q, 0],
+      ["Tunnels (stage 1 + stage 2)", x => `${x.N} × ${f0(x.v.L1)} m + ${x.N} × ${f0(x.v.L2)} m`],
+      ["Turn days → refill days", x => `${x.turnDays} → ${x.fillDays}`],
+      ["Stage 1 load per tunnel (t)", x => x.s1.t, 0],
+      ["Stage 1 / stage 2 fill height (m)", x => `${f2(x.s1.fill)} / ${f2(x.s2.fill)}`],
+      ["Loader time, peak day (h)", x => x.maxLoaderH, 1],
+      ["Loader hours incl. feed + hopper (h/yr)", x => x.loaderTotal, 0],
+      ["Loaders at 1,600 h", x => x.loaderN, 0],
+      ["Detection bay peak (t)", x => x.bay.peak, 0],
+      ["Detection bay peak (m³)", x => x.fire.bayM3, 0],
+      ["Fire bays ≤ pile limit", x => x.fire.bays, 0],
+      ["OS-01 storage peak (m³)", x => x.os.m3, 0],
+      ["Largest pile (fire water, m³)", x => x.fire.governing.water, 0],
+      ["Heat per heated tunnel (kW)", x => x.v.kw, 0],
+      ["Heat peak, staggered (kW)", x => x.peakKw, 0],
+      ["Output (t/yr)", x => x.mb.out2, 0]
     ];
-    document.getElementById("cmpTable").innerHTML = `<thead><tr><th>Metric</th><th class="n">Build 1</th><th class="n">Build 2</th></tr></thead><tbody>` +
-      rows.map(([n, x, y, d]) => `<tr><td>${n}</td><td class="n">${typeof x === "number" ? nf(d).format(x) : x}</td><td class="n">${typeof y === "number" ? nf(d).format(y) : y}</td></tr>`).join("") + "</tbody>";
+    document.getElementById("cmpTable").innerHTML = `<thead><tr><th>Metric</th>${keys.map(k => `<th class="n">${BUILD_LABEL[k]}</th>`).join("")}</tr></thead><tbody>` +
+      rows.map(([n, fn, d]) => `<tr><td>${n}</td>${R.map(x => { const val = fn(x); return `<td class="n">${typeof val === "number" ? nf(d).format(val) : val}</td>`; }).join("")}</tr>`).join("") + "</tbody>";
   }
 
   // ---------- CSV ----------
@@ -1065,7 +1081,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     render();
   });
   document.getElementById("btnReset").addEventListener("click", () => {
-    const b = state.build === "b2" ? "b2" : "b1";
+    const b = BUILDS[state.build] ? state.build : "b1";
     state = { build: b, v: buildValues(b) };
     render();
   });
