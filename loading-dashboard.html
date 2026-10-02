@@ -204,7 +204,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   <div class="toolbar">
     <div class="seg" id="buildSeg" role="group" aria-label="Build phase">
       <button data-build="b1">Build 1 · 6 tunnels · 75 kt</button>
-      <button data-build="b40">Build 1 · 6 × 40 m · 75 kt</button>
+      <button data-build="b40">Build 1 · 6 × 40 m · selected</button>
       <button data-build="b8">Build 1 · 8 tunnels · 75 kt</button>
       <button data-build="b2">Build 2 · 12 tunnels · 150 kt</button>
       <button data-build="custom" disabled>Custom</button>
@@ -355,7 +355,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     b8: { Q: 75000, N: 4, L1: 31, L2: 25, kw: +(RATE.kw * 3 / 4).toFixed(2) }, // same heat spread over 4 heated tunnels
     b2: { Q: 150000, N: 6, L1: 40, L2: 33, kw: +RATE.kw.toFixed(2) }
   };
-  const BUILD_LABEL = { b1: "6 tunnels (40/33 m)", b40: "6 × 40 m", b8: "8 tunnels (31/25 m)", b2: "12 tunnels · 150 kt" };
+  const BUILD_LABEL = { b1: "6 tunnels (40/33 m)", b40: "6 × 40 m (selected)", b8: "8 tunnels (31/25 m)", b2: "12 tunnels · 150 kt" };
 
   // ---------- Input schema: [key, label, unit, default, step, assumed] ----------
   const GROUPS = [
@@ -423,8 +423,8 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v16";
-  let state = { build: "b1", v: buildValues("b1") };
+  const STORE = "tunnel_plan_v17";
+  let state = { build: "b40", v: buildValues("b40") }; // 6 × 40 m is the fixed layout
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
     if (s && s.v) state = { build: s.build || "custom", v: Object.assign({}, DEFAULTS, s.v) };
@@ -661,7 +661,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     return "custom";
   }
   function syncInputs() {
-    const base = buildValues(BUILDS[state.build] ? state.build : "b1");
+    const base = buildValues(BUILDS[state.build] ? state.build : "b40");
     inputsEl.querySelectorAll("input[data-k]").forEach(inp => {
       const k = inp.dataset.k;
       if (document.activeElement !== inp) inp.value = state.v[k];
@@ -719,7 +719,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
           (n >= 3 && per <= v.loaderYr * 1.1 ? `<b>${n - 1} loaders at ~${f0(per)} h each</b> (${f0((per / v.loaderYr - 1) * 100)}% over ${f0(v.loaderYr)} h) or ${n} loaders.` : `<b>${n} loader${n > 1 ? "s" : ""}</b> at ${f0(v.loaderYr)} h each.`); })()],
       ["Heat & fire water", `Heat plant sized to the staggered peak, ${f0(r.peakKw)} kW plus margin (WTT method gives ${f0(v.kw * r.N)} kW). Fire water ${f0(fr.governing.lpm)} l/min for ${f0(v.waterDur / 60)} h = ${f0(fr.governing.water)} m³, governed by the ${fr.governing.n.toLowerCase()}, with containment to match plus rainfall.`]
     ];
-    document.getElementById("designCard").innerHTML = `<h2>Recommended design (interim)</h2>
+    document.getElementById("designCard").innerHTML = `<h2>${state.build === "b40" ? "Selected design: 6 × 40 m (interim)" : "Design for this layout (interim)"}</h2>
       <p class="sub">The best layout with today's inputs, before Portadown data arrives. Figures follow the inputs on the left.</p>
       <div class="tblwrap"><table><tbody>${rows.map(([a, t]) => `<tr><td style="font-weight:600;vertical-align:top">${a}</td><td style="white-space:normal">${t}</td></tr>`).join("")}</tbody></table></div>`;
   }
@@ -1088,7 +1088,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     render();
   });
   document.getElementById("btnReset").addEventListener("click", () => {
-    const b = BUILDS[state.build] ? state.build : "b1";
+    const b = BUILDS[state.build] ? state.build : "b40";
     state = { build: b, v: buildValues(b) };
     render();
   });
