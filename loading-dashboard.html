@@ -204,6 +204,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   <div class="toolbar">
     <div class="seg" id="buildSeg" role="group" aria-label="Build phase">
       <button data-build="b1">Build 1 · 6 tunnels · 75 kt</button>
+      <button data-build="b40">Build 1 · 6 × 40 m · 75 kt</button>
       <button data-build="b8">Build 1 · 8 tunnels · 75 kt</button>
       <button data-build="b2">Build 2 · 12 tunnels · 150 kt</button>
       <button data-build="custom" disabled>Custom</button>
@@ -311,7 +312,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
 
     <section class="card">
       <h2>Layout comparison</h2>
-      <p class="sub">The 6-tunnel and 8-tunnel WTT layouts for 75 kt, and Build 2, all run with your current density, equipment and fire inputs.</p>
+      <p class="sub">The 75 kt layouts (WTT 6-tunnel, 6 identical 40 m tunnels, WTT 8-tunnel) and Build 2 all run with your current density, equipment and fire inputs.</p>
       <div class="tblwrap"><table id="cmpTable" class="cmp"></table></div>
     </section>
 
@@ -350,10 +351,11 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   };
   const BUILDS = {
     b1: { Q: 75000, N: 3, L1: 40, L2: 33, kw: +RATE.kw.toFixed(2) },
+    b40: { Q: 75000, N: 3, L1: 40, L2: 40, kw: +RATE.kw.toFixed(2) }, // 6 identical 40 m tunnels
     b8: { Q: 75000, N: 4, L1: 31, L2: 25, kw: +(RATE.kw * 3 / 4).toFixed(2) }, // same heat spread over 4 heated tunnels
     b2: { Q: 150000, N: 6, L1: 40, L2: 33, kw: +RATE.kw.toFixed(2) }
   };
-  const BUILD_LABEL = { b1: "6 tunnels · 75 kt", b8: "8 tunnels · 75 kt", b2: "12 tunnels · 150 kt" };
+  const BUILD_LABEL = { b1: "6 tunnels (40/33 m)", b40: "6 × 40 m", b8: "8 tunnels (31/25 m)", b2: "12 tunnels · 150 kt" };
 
   // ---------- Input schema: [key, label, unit, default, step, assumed] ----------
   const GROUPS = [
@@ -421,7 +423,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v15";
+  const STORE = "tunnel_plan_v16";
   let state = { build: "b1", v: buildValues("b1") };
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
@@ -652,7 +654,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     densRange.addEventListener("input", () => { state.v.rho = +densRange.value / 1000; render(); });
   }
   function matchBuild(v) {
-    for (const b of ["b1", "b8", "b2"]) {
+    for (const b of ["b1", "b40", "b8", "b2"]) {
       const p = buildValues(b);
       if (Object.keys(p).every(k => k === "rho" || Math.abs(p[k] - v[k]) < 1e-9)) return b;
     }
@@ -707,7 +709,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   function renderDesign(v, r) {
     const b = r.bay, fr = r.fire, bays = fr.bays, perBay = fr.bayM3 / bays;
     const rows = [
-      ["Tunnels", `${r.N} + ${r.N} (WTT layout): stage 1 ${f0(v.L1)} m, stage 2 ${f0(v.L2)} m. ${f0(r.s1.t)} t per fill at ${f2(r.s1.fill)} m (limit ${f2(v.maxFill)} m). Turns ${r.turnDays} into a stage 2 tunnel emptied the same morning.`],
+      ["Tunnels", `${r.N} + ${r.N} (${(v.L1 === 40 && v.L2 === 33) || (v.L1 === 31 && v.L2 === 25) ? "WTT layout" : "identical tunnels"}): stage 1 ${f0(v.L1)} m, stage 2 ${f0(v.L2)} m. ${f0(r.s1.t)} t per fill at ${f2(r.s1.fill)} m (limit ${f2(v.maxFill)} m). Turns ${r.turnDays} into a stage 2 tunnel emptied the same morning.`],
       ["Shredding", r.shred.sep ? `SH-01 for MSW only: ${f1(r.shred.rate)} t/h, ${hh(v.shredStart)}–${hh(v.shredStart + b.window)} Mon–Sat, Blazequel fire detection on the outfeed belt (no battery picking station). SH-02 for bulky waste: ≥ ${f0(v.bulkyT / v.sh2Avail)} t/h (${f0(r.shred.bulkyH)} h at ${f0(v.bulkyRate)} t/h). Each machine backs up the other.` : `One shredder for MSW and bulky waste: see the shredder warning.`],
       ["Detection bays", `${bays} bays of ~${f0(perBay)} m³. Each day's shredding goes into its own group of bays. Pile ${f1(r.bayH)} m (${f1(v.bayFb)} m below the ${f1(v.bayWall)} m wall), ${f0(fr.bayArea)} m² in total. Hold ≥ ${f0(v.holdH)} h; actual watch ${f0(b.minAge)}–${f0(b.maxAge)} h. IR cameras with automatic monitor/deluge, and a quarantine bay for one truckload.`],
       ["Daily rhythm", `07:00 L1 fills (${r.fillDays}) and/or turns (${r.turnDays}). ${hh(v.shredStart)} SH-01 shreds into the emptied bays. Morning loading and afternoon shredding never work in the same bays at the same time.`],
@@ -730,6 +732,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       else add("ok", `${n}: ${f0(p.t)} t fills to ${f2(p.fill)} m, within ${f2(v.maxFill)} m. Filling to the limit would take ${f0(p.cap)} t (${f0(p.spareYr)} t/yr spare).`);
     });
     if (v.rho > 0.35 + 1e-9) add("info", `At ${f0(v.rho * 1000)} kg/m³ the tunnels can't be filled to ${f2(v.maxFill)} m from the ${f0(v.Q)} t/yr supply: the pile sits at ${f2(r.s1.fill)} m. Filling to ${f2(v.maxFill)} m every time would only work with more feed or fewer turns.`);
+    if (Math.abs(v.L1 - v.L2) < 1e-9) add("info", `Identical tunnels (${f0(v.L1)} m): any tunnel can work as stage 1 or stage 2, so a stage 2 tunnel can take a full ${f0(r.s1.t)} t stage 1 batch if a stage 1 tunnel is out of service. Stage 2 runs underfilled at ${f2(r.s2.fill)} m (${f0(r.s2.cap - r.s2.t)} t spare per fill). A lower pile loses heat faster and changes the air per m², so ask WTT to confirm the stage 2 heat and aeration figures for this geometry.`);
     add("ok", `Second tunnel available for turning: each turn goes into a stage 2 tunnel that was emptied to output earlier the same day (${r.plan.map(p => `${T(p.s1)}→${T(p.s2)} ${DAYS[p.turn]}`).join(", ")}).`);
     if (r.res1 < 7) add("warn", `Stage 1 residence is ${r.res1} days (refill to turn) against WTT's 7. WTT's evaporation and degradation for stage 1 may be slightly optimistic. Confirm with WTT that 6 + 7 days still meets the stage 2 output spec.`);
     { const n = r.loaderN, per = r.loaderTotal / Math.max(1, n - 1);
@@ -978,9 +981,11 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       : `WTT's sheet is for 75 kt. Mass flows are scaled ×${f2(k)} for comparison; per-tunnel values stay the same when tunnels double with throughput.`;
     if (Math.abs(v.rho - 0.35) > 1e-9) document.getElementById("valSub").textContent += " Per-tunnel volume and height rows are hidden because WTT used 350 kg/m³.";
     const d35 = Math.abs(v.rho - 0.35) < 1e-9;
-    const ref = d35 && Math.abs(v.Q / v.N - 25000) < 1e-6 && v.L1 === 40 && v.L2 === 33 ? { p1: WTT.p1, p2: WTT.p2 }
-      : d35 && Math.abs(v.Q / v.N - 18750) < 1e-6 && v.L1 === 31 && v.L2 === 25 ? { p1: WTT.p1_4, p2: WTT.p2_4 } : null;
-    const perT = !!ref;
+    const n3 = d35 && Math.abs(v.Q / v.N - 25000) < 1e-6, n4 = d35 && Math.abs(v.Q / v.N - 18750) < 1e-6;
+    const ref = {
+      p1: n3 && v.L1 === 40 ? WTT.p1 : n4 && v.L1 === 31 ? WTT.p1_4 : null,
+      p2: n3 && v.L2 === 33 ? WTT.p2 : n4 && v.L2 === 25 ? WTT.p2_4 : null
+    };
     const rows = [
       ["Stage 1 water evaporation", WTT.evap1 * k, r.mb.evap1, "t/yr", 0],
       ["Stage 1 organics degradation", WTT.deg1 * k, r.mb.deg1, "t/yr", 0],
@@ -990,10 +995,11 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["Output stage 2", WTT.out2 * k, r.mb.out2, "t/yr", 0],
       ["Total mass reduction", WTT.reduction, r.mb.reduction, "%", 2],
       ["Heat input", WTT.kWh * k, r.mb.kWh, "kWh/yr", 0]
-    ].concat(perT ? [
+    ].concat(ref.p1 ? [
       ["S1 weight / tunnel", ref.p1.t, r.s1.t, "t", 0],
       ["S1 volume / tunnel", ref.p1.m3, r.s1.m3, "m³", 0],
-      ["S1 filling height", ref.p1.fill, r.s1.fill, "m", 2],
+      ["S1 filling height", ref.p1.fill, r.s1.fill, "m", 2]
+    ] : []).concat(ref.p2 ? [
       ["S2 weight / tunnel", ref.p2.t, r.s2.t, "t", 0],
       ["S2 volume / tunnel", ref.p2.m3, r.s2.m3, "m³", 0],
       ["S2 filling height", ref.p2.fill, r.s2.fill, "m", 2]
@@ -1009,7 +1015,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
 
   // ---------- Build comparison ----------
   function renderCompare(v) {
-    const keys = ["b1", "b8", "b2"];
+    const keys = ["b1", "b40", "b8", "b2"];
     const R = keys.map(k => compute(Object.assign({}, v, BUILDS[k])));
     const rows = [
       ["Throughput (t/yr)", x => x.v.Q, 0],
@@ -1017,6 +1023,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["Turn days → refill days", x => `${x.turnDays} → ${x.fillDays}`],
       ["Stage 1 load per tunnel (t)", x => x.s1.t, 0],
       ["Stage 1 / stage 2 fill height (m)", x => `${f2(x.s1.fill)} / ${f2(x.s2.fill)}`],
+      ["Tunnel floor built (m²)", x => x.N * (x.v.L1 + x.v.L2) * x.v.Wd, 0],
       ["Loader time, peak day (h)", x => x.maxLoaderH, 1],
       ["Loader hours incl. feed + hopper (h/yr)", x => x.loaderTotal, 0],
       ["Loaders at 1,600 h", x => x.loaderN, 0],

@@ -148,7 +148,7 @@ a { color: var(--ink); }
 
 <!-- ================= SHEET 1 ================= -->
 <section class="sheet">
-  <div class="sheetno">sheet 1 of 5</div>
+  <div class="sheetno">sheet 1 of 6</div>
   <h1>Tunnel loading &amp; unloading: methodology</h1>
   <p class="note">How every number on the dashboard (<i>loading-dashboard.html</i>) is worked out, by hand. Build 1 at 350 kg/m³ unless stated.</p>
 
@@ -210,7 +210,7 @@ a { color: var(--ink); }
 
 <!-- ================= SHEET 2 ================= -->
 <section class="sheet">
-  <div class="sheetno">sheet 2 of 5</div>
+  <div class="sheetno">sheet 2 of 6</div>
 
   <div class="blk">
     <div class="ref">§3</div>
@@ -265,7 +265,7 @@ a { color: var(--ink); }
 
 <!-- ================= SHEET 3 ================= -->
 <section class="sheet">
-  <div class="sheetno">sheet 3 of 5</div>
+  <div class="sheetno">sheet 3 of 6</div>
 
   <div class="blk">
     <div class="ref">§5</div>
@@ -342,7 +342,7 @@ a { color: var(--ink); }
 
 <!-- ================= SHEET 4 ================= -->
 <section class="sheet">
-  <div class="sheetno">sheet 4 of 5</div>
+  <div class="sheetno">sheet 4 of 6</div>
 
   <div class="blk">
     <div class="ref">§8</div>
@@ -430,7 +430,7 @@ a { color: var(--ink); }
 </section>
 <!-- ================= SHEET 5 ================= -->
 <section class="sheet">
-  <div class="sheetno">sheet 5 of 5</div>
+  <div class="sheetno">sheet 5 of 6</div>
   <div class="blk">
     <div class="ref">§11</div>
     <h2>8-tunnel option (4 × 31 m + 4 × 25 m)</h2>
@@ -478,4 +478,31 @@ a { color: var(--ink); }
     <div class="calc">fire water = 1,030 m³ × 6.6 l/min × 180 min = <b>1,224 m³</b></div>
   </div>
 </section>
+<!-- ================= SHEET 6 ================= -->
+<section class="sheet">
+  <div class="sheetno">sheet 6 of 6</div>
+  <div class="blk">
+    <div class="ref">§14</div>
+    <h2>6 × 40 m option (identical tunnels)</h2>
+    <p>3 stage 1 + 3 stage 2, all 40 × 8 × 6 m. Stage 1 is unchanged from WTT; only stage 2 gets longer.</p>
+    <div class="calc">stage 1 = 481 t → 1,374 m³ ÷ 308 m² = <span class="ans">4.46 m</span> ✓ <span class="note">(same as WTT)</span></div>
+    <div class="calc">stage 2 = 384 t → 1,097 m³ ÷ ((40 − 1.5) × 8 = 308 m²) = <span class="ans">3.56 m</span> <span class="note">(was 4.35 m in 33 m)</span></div>
+    <div class="calc">stage 2 capacity at 4.5 m = 4.5 × 308 × 0.35 = 485 t → <b>101 t spare</b> per fill (26%)</div>
+    <div class="calc">floor built = 6 × 40 × 8 = <b>1,920 m²</b> <span class="note">(40 + 33 m: 1,752 m², +168 m², +10%)</span></div>
+  </div>
+  <div class="blk">
+    <div class="ref">§15</div>
+    <h2>What it buys, what it costs</h2>
+    <table class="hand">
+      <tr><th></th><th class="n">40 + 33 m</th><th class="n">6 × 40 m</th><th class="n">8 tunnels</th></tr>
+      <tr><td>stage 2 fill</td><td class="n">4.35 m</td><td class="n"><b>3.56 m</b></td><td class="n">4.38 m</td></tr>
+      <tr><td>tunnel floor</td><td class="n">1,752 m²</td><td class="n">1,920 m²</td><td class="n">1,792 m²</td></tr>
+      <tr><td>one tunnel down</td><td class="n">−33%</td><td class="n"><b>any tunnel covers</b></td><td class="n">−25%</td></tr>
+      <tr><td>fire water</td><td class="n">1,632 m³</td><td class="n">1,632 m³</td><td class="n">1,224 m³</td></tr>
+      <tr><td>loaders, bays, output</td><td class="n" colspan="3">unchanged (same tonnes and volumes)</td></tr>
+    </table>
+    <div class="sticky">Identical tunnels mean one door, fan and floor design, and spares fit every tunnel. The catch is a lower, wider stage 2 pile: more surface and more air per tonne, so more heat loss. WTT's heat and aeration figures were for 33 m and need re-checking.</div>
+  </div>
+</section>
+
 
