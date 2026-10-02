@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tunnel Loading Planner</title>
+<meta name="description" content="Mon–Sat tunnel loading, turning and unloading plan for the Coleraine composting tunnels (T1–T6 / T1–T12), driven by the WTT mass balance, with a post-shredding battery detection bay." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f4f1;
+  --surface-1: #fcfcfb;
+  --surface-2: #efeeea;
+  --border: #dcdbd5;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #77766f;
+  --accent: #1c5cab;
+  --grid: #e4e3de;
+  --s-water: #2a78d6;
+  --s-org: #eb6834;
+  --s-min: #1baf7a;
+  --s-heat: #e34948;
+  --s-turn: #eda100;
+  --s-comp: #86b6ef;
+  --s-fill: #1baf7a;
+  --s-out: #e87ba4;
+  --good: #0f7a3a;
+  --warn: #9a6200;
+  --crit: #b3261e;
+  --good-bg: #e3f3e8;
+  --warn-bg: #fbf0d9;
+  --crit-bg: #fbe4e2;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0e1116;
+    --surface-1: #161a21;
+    --surface-2: #1d222b;
+    --border: #2b313c;
+    --text-primary: #f2f2f0;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8f8e86;
+    --accent: #6da7ec;
+    --grid: #262b34;
+    --s-water: #3987e5;
+    --s-org: #d95926;
+    --s-min: #199e70;
+    --s-heat: #e66767;
+    --s-turn: #c98500;
+    --s-comp: #1c5cab;
+    --s-fill: #199e70;
+    --s-out: #d55181;
+    --good: #5fcf8a;
+    --warn: #f0b84a;
+    --crit: #ff8a80;
+    --good-bg: #13291c;
+    --warn-bg: #2d2412;
+    --crit-bg: #331715;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1116;
+  --surface-1: #161a21;
+  --surface-2: #1d222b;
+  --border: #2b313c;
+  --text-primary: #f2f2f0;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8f8e86;
+  --accent: #6da7ec;
+  --grid: #262b34;
+  --s-water: #3987e5;
+  --s-org: #d95926;
+  --s-min: #199e70;
+  --s-heat: #e66767;
+  --s-turn: #c98500;
+  --s-comp: #1c5cab;
+  --s-fill: #199e70;
+  --s-out: #d55181;
+  --good: #5fcf8a;
+  --warn: #f0b84a;
+  --crit: #ff8a80;
+  --good-bg: #13291c;
+  --warn-bg: #2d2412;
+  --crit-bg: #331715;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.num, td.n, .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+header.top {
+  padding: 20px 24px 12px;
+  display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+header.top h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+header.top .meta { color: var(--text-secondary); font-size: 13px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select {
+  font: inherit; font-size: 13px;
+  background: var(--surface-1); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button.active { background: var(--accent); border-color: var(--accent); color: var(--surface-1); }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; border-right: 1px solid var(--border); }
+.seg button:last-child { border-right: 0; }
+main { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 20px; padding: 20px 24px 48px; max-width: 1600px; margin: 0 auto; }
+@media (max-width: 1000px) { main { grid-template-columns: minmax(0, 1fr); padding: 16px; } header.top { padding: 16px; } }
+aside.inputs { display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px; min-width: 0; }
+.card h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+.card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.card .sub { color: var(--text-secondary); font-size: 13px; margin: 0 0 12px; }
+details.grp { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; }
+details.grp > summary { padding: 10px 14px; cursor: pointer; font-weight: 600; font-size: 13px; list-style: none; display: flex; justify-content: space-between; }
+details.grp > summary::after { content: "+"; color: var(--text-muted); }
+details.grp[open] > summary::after { content: "–"; }
+details.grp .fields { padding: 0 14px 12px; display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; }
+.fields label { font-size: 13px; color: var(--text-secondary); }
+.fields label .asm { color: var(--warn); font-size: 11px; margin-left: 4px; }
+.fields .inp { display: flex; align-items: center; gap: 4px; }
+.fields input {
+  width: 96px; text-align: right; font: inherit; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--border); border-radius: 5px; padding: 4px 6px;
+}
+.fields input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.fields input.changed { border-color: var(--warn); }
+.fields .u { font-size: 11px; color: var(--text-muted); width: 44px; }
+.content { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.kpi .l { font-size: 12px; color: var(--text-secondary); }
+.kpi .v { font-size: 24px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; letter-spacing: -0.02em; margin-top: 2px; }
+.kpi .v small { font-size: 13px; font-weight: 400; color: var(--text-secondary); margin-left: 3px; }
+.kpi .s { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 1200px) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 6px 8px; border-bottom: 1px solid var(--grid); text-align: left; white-space: nowrap; }
+th { font-weight: 600; color: var(--text-secondary); font-size: 12px; }
+td.n, th.n { text-align: right; }
+tr.tot td { font-weight: 600; border-top: 1px solid var(--border); }
+.tblwrap { overflow-x: auto; }
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; border-radius: 999px; padding: 1px 8px; font-weight: 500; }
+.pill.ok { background: var(--good-bg); color: var(--good); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.crit { background: var(--crit-bg); color: var(--crit); }
+.alerts { display: flex; flex-direction: column; gap: 8px; }
+.alert { display: flex; gap: 10px; align-items: flex-start; border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+.alert .ic { font-weight: 700; flex: none; width: 18px; text-align: center; }
+.alert.warn { background: var(--warn-bg); color: var(--text-primary); } .alert.warn .ic { color: var(--warn); }
+.alert.crit { background: var(--crit-bg); color: var(--text-primary); } .alert.crit .ic { color: var(--crit); }
+.alert.info { background: var(--surface-2); color: var(--text-primary); } .alert.info .ic { color: var(--accent); }
+.alert.ok { background: var(--good-bg); color: var(--text-primary); } .alert.ok .ic { color: var(--good); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--text-secondary); margin: 4px 0 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+.chart { width: 100%; display: block; }
+#tip {
+  position: fixed; pointer-events: none; z-index: 20; display: none;
+  background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.25); max-width: 280px;
+}
+#tip b { font-weight: 600; }
+#tip .r { display: flex; justify-content: space-between; gap: 14px; }
+#tip .r span:last-child { font-family: 'IBM Plex Mono', monospace; }
+.tunnels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 700px) { .tunnels { grid-template-columns: minmax(0, 1fr); } }
+.gantt-wrap { overflow-x: auto; }
+.foot { color: var(--text-muted); font-size: 12px; }
+.foot ul { margin: 6px 0 0; padding-left: 18px; }
+.cmp td.best { font-weight: 600; }
+@media print {
+  aside.inputs, .toolbar { display: none; }
+  main { grid-template-columns: 1fr; }
+  body { background: #fff; }
+}
+.legend i.empty { background: var(--surface-2); border: 1px dashed var(--text-muted); }
+.densrow { display: flex; align-items: center; gap: 10px; }
+.densrow input[type=range] { flex: 1; accent-color: var(--accent); }
+.densrow .num { font-size: 13px; white-space: nowrap; }
+.densticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Tunnel loading &amp; unloading planner</h1>
+    <div class="meta">Coleraine · client Riverridge · WTT mass balance, project 26029, rev 1 (preliminary, 27/08/2026) · operating Mon–Sat</div>
+  </div>
+  <div class="toolbar">
+    <div class="seg" id="buildSeg" role="group" aria-label="Build phase">
+      <button data-build="b1">Build 1 · 6 tunnels · 75 kt</button>
+      <button data-build="b40">Build 1 · 6 × 40 m · selected</button>
+      <button data-build="b8">Build 1 · 8 tunnels · 75 kt</button>
+      <button data-build="b2">Build 2 · 12 tunnels · 150 kt</button>
+      <button data-build="custom" disabled>Custom</button>
+    </div>
+    <button id="btnReset" title="Reload the selected build phase defaults">Reset</button>
+    <button id="btnCsv" title="Download the weekly plan as CSV">Export CSV</button>
+    <button id="btnTheme" title="Toggle light/dark">◐</button>
+  </div>
+</header>
+
+<main>
+  <aside class="inputs">
+    <div class="card dens">
+      <h2>Bulk density</h2>
+      <p class="sub" style="margin-bottom:6px">Shredded feed. 350 kg/m³ is the design minimum, with an upper range of +20%.</p>
+      <div class="densrow">
+        <input type="range" id="densRange" min="350" max="420" step="5" aria-label="Bulk density">
+        <span class="num" id="densVal"></span>
+      </div>
+      <div class="densticks"><span>350</span><span>+10%</span><span>420 (+20%)</span></div>
+    </div>
+    <div id="inputs"></div>
+  </aside>
+
+  <div class="content">
+    <section class="card design" id="designCard"></section>
+
+    <section class="kpis" id="kpis"></section>
+
+    <section class="card">
+      <h2>Checks &amp; warnings</h2>
+      <p class="sub">Fill-height limit, tunnel availability for turning, loader time, detection bay, and gaps between this plan and the WTT basis.</p>
+      <div class="alerts" id="alerts"></div>
+    </section>
+
+    <section class="card">
+      <h2>Weekly tunnel plan</h2>
+      <p class="sub">Turning moves material into a <b>different</b> tunnel. On turning day the paired stage 2 tunnel is emptied to output first (①), then the stage 1 tunnel is loaded straight into it (②). The emptied stage 1 tunnel is refilled from the detection bay the next working day (③).</p>
+      <div class="legend">
+        <span><i style="background:var(--s-fill)"></i>③ Fill from detection bay</span>
+        <span><i style="background:var(--s-turn)"></i>② Turn out → stage 2</span>
+        <span><i style="background:var(--s-out)"></i>① Empty to output, then receive turn</span>
+        <span><i class="empty"></i>Empty (awaiting refill)</span>
+        <span><i style="background:var(--s-heat)"></i>Additional heat</span>
+        <span><i style="background:var(--s-comp)"></i>Composting</span>
+      </div>
+      <div class="gantt-wrap"><svg id="gantt" role="img" aria-label="Tunnel plan Gantt chart"></svg></div>
+    </section>
+
+    <section class="card">
+      <h2>Daily loading &amp; unloading sequence</h2>
+      <p class="sub">A typical week. Steps are listed in the order they must happen each day.</p>
+      <div class="tblwrap"><table id="dayTable"></table></div>
+    </section>
+
+    <section class="card">
+      <h2>Tunnel loading per batch</h2>
+      <p class="sub">Cross-section of one tunnel at filling. Filling height = volume ÷ ((length − dead length) × width). The dashed line is the 4.5 m limit.</p>
+      <div class="tunnels" id="tunnels"></div>
+      <h3 style="margin-top:16px">Density sensitivity (stage 1 tunnel)</h3>
+      <div class="tblwrap"><table id="densTable"></table></div>
+    </section>
+
+    <section class="card" id="fireSec">
+      <h2>Fire strategy · post-shredding detection bay</h2>
+      <p class="sub">Shredded waste waits in an open, camera-watched bay for at least the hold time before any tunnel is filled. A cell damaged by the shredder that goes into thermal runaway should then do it where it can be seen and put out, not inside a closed tunnel.</p>
+      <div class="kpis" id="fireKpis"></div>
+      <div class="row2" style="margin-top:16px">
+        <div>
+          <h3>Detection bay stock (peak within each day)</h3>
+          <div class="legend">
+            <span><i style="background:var(--s-water)"></i>Holding (&lt; hold time)</span>
+            <span><i style="background:var(--s-min)"></i>Cleared for loading</span>
+          </div>
+          <svg class="chart" id="bayChart" role="img" aria-label="Detection bay stock by day"></svg>
+          <div id="bayNote" class="foot"></div>
+        </div>
+        <div>
+          <h3>Pile sizing &amp; fire water</h3>
+          <div class="tblwrap"><table id="fireTable"></table></div>
+          <div id="fireNote" class="foot" style="margin-top:8px"></div>
+        </div>
+      </div>
+      <h3 style="margin-top:16px">Controls by process stage</h3>
+      <div class="tblwrap"><table id="fireCtrl"></table></div>
+    </section>
+
+    <section class="row2">
+      <div class="card">
+        <h2>Mass balance by stage</h2>
+        <p class="sub">Annual tonnage split into water, organic dry solids and mineral dry solids. Losses are shown above each stage.</p>
+        <div class="legend">
+          <span><i style="background:var(--s-water)"></i>Water</span>
+          <span><i style="background:var(--s-org)"></i>Organic DS</span>
+          <span><i style="background:var(--s-min)"></i>Mineral DS</span>
+        </div>
+        <svg class="chart" id="massChart" role="img" aria-label="Mass balance stacked bars"></svg>
+      </div>
+      <div class="card">
+        <h2>Model vs WTT sheet</h2>
+        <p class="sub" id="valSub"></p>
+        <div class="tblwrap"><table id="valTable"></table></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Layout comparison</h2>
+      <p class="sub">The 75 kt layouts (WTT 6-tunnel, 6 identical 40 m tunnels, WTT 8-tunnel) and Build 2 all run with your current density, equipment and fire inputs.</p>
+      <div class="tblwrap"><table id="cmpTable" class="cmp"></table></div>
+    </section>
+
+    <section class="card foot">
+      <b>Model basis</b>
+      <ul>
+        <li>The mass balance uses the WTT 3-tunnel sheet as rates: water evaporation as a % of water in, organics degradation as a % of organic DS in, and additional heat evaporating water at 2,500 kJ/kg. Build 2 doubles the throughput and tunnel count at the same tunnel sizes.</li>
+        <li>Every stage 1 tunnel turns once a week. Batch = annual tonnage ÷ (operating weeks × stage 1 tunnels), which is WTT's 481 t for Build 1.</li>
+        <li>Split-day pattern: waste spends <b>6 days</b> in stage 1 (refill day to turning day) and 7 days in stage 2. WTT's rates assume 7 + 7, so real stage 1 losses may be slightly lower.</li>
+        <li>Density applies to both the shredded feed and the stage 1 output going into stage 2 (WTT uses 0.35 t/m³ for both). The dead length of 1.5 m is back-calculated from WTT's filling heights.</li>
+        <li>Shredder: MSW is shredded in the set h/yr, spread evenly Mon–Sat in the first part of the shift. The remaining available hours are for bulky waste, which is assumed not to go to the tunnels.</li>
+        <li>The detection bay is simulated hour by hour, first in, first out. MSW is shredded evenly from the set start time over the daily MSW hours (Mon–Sat). Each refill removes a full batch at the fill start time and may only take material that has had the full hold. The bay size is the highest stock at any hour.</li>
+        <li>Pile limit and fire-water rate follow the style of the English EA Fire Prevention Plan guidance. Coleraine is regulated by NIEA, so confirm the values that apply. Inputs marked <span style="color:var(--warn)">assumed</span> are not from WTT; replace them with site data.</li>
+      </ul>
+    </section>
+  </div>
+</main>
+<div id="tip"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Source data: WTT sheet, project 26029 rev 1, 3-tunnel layout ----------
+  const WTT = {
+    Q: 75000, evap1: 13022, deg1: 2068, out1: 59910, DS1: 75, evap2: 4814, deg2: 764,
+    heatEvap: 1847, out2: 52486, DS2: 84, reduction: 30.02, kWh: 1282814,
+    p1: { t: 481, m3: 1374, fill: 4.46 }, p2: { t: 384, m3: 1097, fill: 4.35 },
+    // WTT 4-tunnel sheet (4 × 31 m stage 1, 4 × 25 m stage 2)
+    p1_4: { t: 361, m3: 1030, fill: 4.37 }, p2_4: { t: 288, m3: 823, fill: 4.38 }
+  };
+  const RATE = {
+    e1: 13022 / 27750 * 100, d1: 2068 / 20790 * 100,
+    e2: 4814 / 14728 * 100,  d2: 764 / 18722 * 100,
+    kw: 1282814 / (52 * 3 * 4 * 24) // kW per heated tunnel
+  };
+  const BUILDS = {
+    b1: { Q: 75000, N: 3, L1: 40, L2: 33, kw: +RATE.kw.toFixed(2) },
+    b40: { Q: 75000, N: 3, L1: 40, L2: 40, kw: +RATE.kw.toFixed(2) }, // 6 identical 40 m tunnels
+    b8: { Q: 75000, N: 4, L1: 31, L2: 25, kw: +(RATE.kw * 3 / 4).toFixed(2) }, // same heat spread over 4 heated tunnels
+    b2: { Q: 150000, N: 6, L1: 40, L2: 33, kw: +RATE.kw.toFixed(2) }
+  };
+  const BUILD_LABEL = { b1: "6 tunnels (40/33 m)", b40: "6 × 40 m (selected)", b8: "8 tunnels (31/25 m)", b2: "12 tunnels · 150 kt" };
+
+  // ---------- Input schema: [key, label, unit, default, step, assumed] ----------
+  const GROUPS = [
+    { title: "Feed", open: true, fields: [
+      ["Q", "Throughput", "t/yr", 75000, 1000],
+      ["DS", "Dry solids", "%", 63, 0.1],
+      ["ODS", "Organic DS (of DS)", "%", 44, 0.1]
+    ]},
+    { title: "Tunnels", open: true, fields: [
+      ["N", "Stage 1 tunnels (= stage 2)", "#", 3, 1],
+      ["L1", "Stage 1 length", "m", 40, 0.5],
+      ["L2", "Stage 2 length", "m", 33, 0.5],
+      ["Wd", "Width", "m", 8, 0.5],
+      ["Ht", "Height", "m", 6, 0.1],
+      ["dead", "Dead length", "m", 1.5, 0.1],
+      ["maxFill", "Max filling height", "m", 4.5, 0.05]
+    ]},
+    { title: "Process (WTT rates)", open: false, fields: [
+      ["e1", "Stage 1 water evaporation", "% water", +RATE.e1.toFixed(4), 0.1],
+      ["d1", "Stage 1 organics degradation", "% ODS", +RATE.d1.toFixed(4), 0.1],
+      ["e2", "Stage 2 water evaporation", "% water", +RATE.e2.toFixed(4), 0.1],
+      ["d2", "Stage 2 organics degradation", "% ODS", +RATE.d2.toFixed(4), 0.1],
+      ["kw", "Heat per heated tunnel", "kW", +RATE.kw.toFixed(2), 1],
+      ["hDays", "Heating days / batch", "days", 4, 1],
+      ["latent", "Latent heat", "kJ/kg", 2500, 10]
+    ]},
+    { title: "Operations & equipment", open: false, fields: [
+      ["weeks", "Operating weeks", "wk/yr", 52, 1],
+      ["bucket", "Loader bucket", "m³", 9, 0.5],
+      ["bCycle", "Loader cycle", "min", 2, 0.1, true],
+      ["feedRho", "Raw MSW density (shredder feed)", "t/m³", 0.35, 0.01, true],
+      ["loaderYr", "Loader hours available (per loader)", "h/yr", 1600, 50],
+      ["payIn", "Inbound payload", "t/truck", 20, 1, true],
+      ["payOut", "Outbound payload", "t/truck", 25, 1, true]
+    ]},
+    { title: "Shredder", open: true, fields: [
+      ["bulkyT", "Bulky waste", "t/yr", 60000, 1000],
+      ["bulkyRate", "Bulky shredding rate", "t/h", 40, 1, true],
+      ["sh2", "Separate bulky shredder SH-02 (1 = yes)", "", 1, 1],
+      ["sh2Avail", "SH-02 available", "h/yr", 1600, 50],
+      ["shredAvail", "SH-01 available", "h/yr", 1600, 50]
+    ]},
+    { title: "Secondary processing", open: true, fields: [
+      ["spRate", "Line rated throughput", "t/h", 33, 1],
+      ["spH", "Line running hours", "h/yr", 1600, 50],
+      ["spStart", "Line starts", "hh (24 h)", 13, 0.5, true],
+      ["hopperM3", "Dosing hopper volume", "m³", 60, 5, true]
+    ]},
+    { title: "Fire · detection bay", open: true, fields: [
+      ["holdH", "Hold before tunnel", "h", 12, 1],
+      ["shredStart", "MSW shredding starts", "hh (24 h)", 12, 0.5],
+      ["fillStart", "Tunnel fill starts", "hh (24 h)", 7, 1],
+      ["bayWall", "Bay wall height", "m", 4.3, 0.1],
+      ["bayFb", "Pile below wall top", "m", 0.5, 0.1],
+      ["pileMax", "Max pile volume", "m³", 450, 10, true],
+      ["dwellMax", "Max bay residence", "days", 3, 0.5, true],
+      ["batKgT", "Batteries in feed", "kg/t", 1, 0.1, true],
+      ["cellKg", "Average battery / vape mass", "kg", 0.05, 0.005, true],
+      ["waterRate", "Fire water rate", "l/min/m³", 6.6, 0.1, true],
+      ["waterDur", "Fire water duration", "min", 180, 10, true]
+    ]}
+  ];
+  const DEFAULTS = { rho: 0.35 };
+  GROUPS.forEach(g => g.fields.forEach(f => DEFAULTS[f[0]] = f[3]));
+  const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
+
+  // ---------- State ----------
+  const STORE = "tunnel_plan_v17";
+  let state = { build: "b40", v: buildValues("b40") }; // 6 × 40 m is the fixed layout
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE) || "null");
+    if (s && s.v) state = { build: s.build || "custom", v: Object.assign({}, DEFAULTS, s.v) };
+  } catch (e) {}
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} };
+
+  // ---------- Formatting ----------
+  const nf = d => new Intl.NumberFormat("en-GB", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const f0 = x => nf(0).format(x), f1 = x => nf(1).format(x), f2 = x => nf(2).format(x);
+  const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const WORK = 6; // Mon–Sat
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const tr = (a, b) => `<div class="r"><span>${a}</span><span>${b}</span></div>`;
+  const T = i => "T" + (i + 1);
+  const hh = x => { const m = Math.round(((x % 24) + 24) % 24 * 60); return String(Math.floor(m / 60) % 24).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); };
+
+  // ---------- Model ----------
+  function compute(v) {
+    const r = { v };
+    const N = Math.max(1, Math.round(v.N));
+    // Mass balance
+    const W0 = v.Q * (1 - v.DS / 100), DS0 = v.Q * v.DS / 100, O0 = DS0 * v.ODS / 100, M = DS0 - O0;
+    const evap1 = W0 * v.e1 / 100, deg1 = O0 * v.d1 / 100;
+    const W1 = W0 - evap1, O1 = O0 - deg1, out1 = v.Q - evap1 - deg1;
+    const evap2 = W1 * v.e2 / 100, deg2 = O1 * v.d2 / 100;
+    const batchesYr = v.weeks * N;
+    const kWh = v.kw * v.hDays * 24 * batchesYr;
+    const heatEvapRaw = kWh / (v.latent / 3.6);
+    const heatEvap = Math.min(heatEvapRaw, Math.max(0, W1 - evap2));
+    const W2 = W1 - evap2 - heatEvap, O2 = O1 - deg2, out2 = out1 - evap2 - deg2 - heatEvap;
+    r.mb = { W0, O0, M, evap1, deg1, W1, O1, out1, evap2, deg2, heatEvap, heatEvapRaw, W2, O2, out2, kWh,
+      DS1: (O1 + M) / out1 * 100, ODS1: O1 / (O1 + M) * 100,
+      DS2: (O2 + M) / out2 * 100, ODS2: O2 / (O2 + M) * 100,
+      reduction: (1 - out2 / v.Q) * 100 };
+
+    // Per-batch loads
+    const eff1 = Math.max(0.1, v.L1 - v.dead) * v.Wd, eff2 = Math.max(0.1, v.L2 - v.dead) * v.Wd;
+    const t1 = v.Q / batchesYr, t2 = out1 / batchesYr, tOut = out2 / batchesYr;
+    const tunnel = (t, eff, L) => {
+      const m3 = t / v.rho, cap = v.maxFill * eff * v.rho;
+      return { t, m3, fill: m3 / eff, cap, spareYr: (cap - t) * batchesYr, L };
+    };
+    r.N = N; r.batchesYr = batchesYr;
+    r.s1 = tunnel(t1, eff1, v.L1);
+    r.s2 = tunnel(t2, eff2, v.L2);
+    r.tOut = tOut;
+    r.eff1 = eff1; r.eff2 = eff2;
+
+    // Weekly plan: each stage 1 tunnel turns once a week into an emptied stage 2 tunnel and is refilled the next working day.
+    // 3 tunnels: turn Mon/Wed/Fri. 4 tunnels: turn Mon/Tue/Thu/Fri (refill Tue/Wed/Fri/Sat). Larger builds double up.
+    const PATTERN = { 3: [0, 2, 4], 4: [0, 1, 3, 4] };
+    const base = PATTERN[N] || (N % 4 === 0 ? PATTERN[4] : PATTERN[3]);
+    r.plan = Array.from({ length: N }, (_, i) => {
+      const turn = base[Math.min(base.length - 1, Math.floor(i * base.length / N))];
+      return { s1: i, s2: N + i, turn, refill: turn + 1 };
+    });
+    r.turnDays = [...new Set(r.plan.map(p => p.turn))].map(d => DAYS[d]).join("/");
+    r.fillDays = [...new Set(r.plan.map(p => p.refill))].map(d => DAYS[d]).join("/");
+    // Residence: stage 1 from refill to next turn; stage 2 from turn to next turn
+    r.res1 = Math.min(...r.plan.map(p => (p.turn + 7 - p.refill) % 7 || 7));
+    r.res2 = 7;
+
+    // Tunnel state per day for 14 days
+    r.states = [];
+    for (let i = 0; i < 2 * N; i++) {
+      const p = r.plan[i % N], stage = i < N ? 1 : 2;
+      r.states.push(Array.from({ length: 14 }, (_, d) => {
+        const dow = d % 7;
+        if (stage === 1) {
+          if (dow === p.turn) return "turn";
+          if (dow === p.refill) return "fill";
+          return "comp";
+        }
+        if (dow === p.turn) return "out";
+        const since = (dow - p.turn + 7) % 7;
+        if (v.kw > 0 && since >= 1 && since <= v.hDays) return "heat";
+        return "comp";
+      }));
+    }
+
+    // Daily handling
+    const shredDay = v.Q / (v.weeks * WORK);
+    r.days = DAYS.map((name, dow) => {
+      const turns = r.plan.filter(p => p.turn === dow), fills = r.plan.filter(p => p.refill === dow);
+      const vFill = fills.length * t1 / v.rho, vTurn = turns.length * t2 / v.rho, vOut = turns.length * tOut / v.rho;
+      const buckets = fills.length * Math.ceil(t1 / v.rho / v.bucket) + turns.length * (Math.ceil(t2 / v.rho / v.bucket) + Math.ceil(tOut / v.rho / v.bucket));
+      const heating = r.states.slice(N).filter(s => s[7 + dow] === "heat").length;
+      return { dow, name, shred: dow < WORK ? shredDay : 0, turns, fills,
+        fillT: fills.length * t1, turnT: turns.length * t2, outT: turns.length * tOut,
+        vFill, vTurn, vOut, buckets, loaderH: buckets * v.bCycle / 60,
+        trucksIn: dow < WORK ? shredDay / v.payIn : 0, trucksOut: turns.length * tOut / v.payOut, heating };
+    });
+    r.shredDay = shredDay;
+    // Shredder: bulky waste takes its hours first; MSW gets the rest of the available hours
+    const sep = v.sh2 >= 1;
+    const bulkyH = v.bulkyT / Math.max(0.1, v.bulkyRate), mswH = sep ? v.shredAvail : v.shredAvail - bulkyH;
+    r.shred = {
+      sep, bulkyOver: sep && bulkyH > v.sh2Avail,
+      mswH, rate: mswH > 0 ? v.Q / mswH : Infinity, hDay: mswH / (v.weeks * WORK),
+      bulkyH, bulkyHday: bulkyH / (v.weeks * WORK), bulkyHwk: bulkyH / v.weeks,
+      availHday: v.shredAvail / (v.weeks * WORK)
+    };
+    r.bayH = Math.max(0.1, v.bayWall - v.bayFb);
+    r.maxLoaderH = Math.max(...r.days.map(x => x.loaderH));
+    r.shiftDay = v.loaderYr / (v.weeks * WORK);
+    r.weekLoaderH = r.days.reduce((a, x) => a + x.loaderH, 0);
+    r.loaderYrNeed = r.weekLoaderH * v.weeks;
+    r.loaders = Math.max(1, Math.ceil(r.loaderYrNeed / v.loaderYr - 1e-9));
+    // Two-loader split: L1 fills and turns tunnels; L2 feeds the shredder and empties stage 2 to output
+    const outH = r.days.reduce((a, x) => a + x.turns.length * Math.ceil(r.tOut / v.rho / v.bucket), 0) * v.bCycle / 60 * v.weeks;
+    const feedH = Math.ceil(shredDay / v.feedRho / v.bucket) * v.bCycle / 60 * WORK * v.weeks;
+    r.L1 = r.loaderYrNeed - outH; r.L2 = feedH + outH; r.feedH = feedH; r.outH = outH;
+    // Output route: stage 2 → OS-01 storage bay → DH-01 dosing hopper → SP-01 secondary processing
+    {
+      const emptyH = Math.ceil(r.tOut / v.rho / v.bucket) * v.bCycle / 60;
+      const spH = v.spH, spRate = r.mb.out2 / spH, spHday = spH / (v.weeks * WORK); // rate the line must average to clear the output
+      let cum = 0, lo = Infinity, hi = -Infinity;
+      for (let h = 7 * 24; h < 21 * 24; h++) {
+        const d = Math.floor(h / 24) % 7, hod = h % 24;
+        const n = r.plan.filter(p => p.turn === d).length;
+        const inW = n * emptyH, inRate = n ? r.tOut * n / inW : 0;
+        cum += inRate * Math.max(0, Math.min(hod + 1, 7 + inW) - Math.max(hod, 7));
+        if (d < WORK) cum -= spRate * Math.max(0, Math.min(hod + 1, v.spStart + spHday) - Math.max(hod, v.spStart));
+        lo = Math.min(lo, cum); hi = Math.max(hi, cum);
+      }
+      const peak = hi - Math.min(0, lo), m3 = peak / v.rho, k = Math.max(1, Math.ceil(m3 / v.pileMax - 1e-9));
+      const hopperT = v.hopperM3 * v.rho;
+      r.os = { spH, peak, m3, bays: k, area: m3 / r.bayH, spRate, spHday, emptyRate: r.tOut / emptyH, hopperT, hopperMin: hopperT / spRate * 60,
+        feedH: r.mb.out2 / v.rho / v.bucket * v.bCycle / 60 };
+      r.loaderTotal = r.L1 + r.L2 + r.os.feedH;
+      r.loaderN = Math.max(1, Math.ceil(r.loaderTotal / v.loaderYr - 1e-9));
+    }
+    r.peakHeat = Math.max(...r.days.map(x => x.heating));
+    r.peakKw = r.peakHeat * v.kw;
+
+    // Detection bay
+    r.bay = baySim(v, r, shredDay, t1);
+    const li = v.batKgT / Math.max(1e-6, v.cellKg); // cells per tonne
+    const bayM3 = r.bay.peak / v.rho;
+    const piles = [
+      { n: `Detection bay, 1 of ${Math.ceil(bayM3 / v.pileMax)} (fire-separated)`, m3: bayM3 / Math.ceil(bayM3 / v.pileMax) },
+      { n: "Stage 1 tunnel", m3: r.s1.m3 },
+      { n: "Stage 2 tunnel", m3: r.s2.m3 },
+      { n: "Hot-load quarantine (1 truck)", m3: v.payIn / v.rho },
+      { n: `Output storage bay, 1 of ${r.os.bays}`, m3: r.os.m3 / r.os.bays }
+    ].map(x => Object.assign(x, { lpm: x.m3 * v.waterRate, water: x.m3 * v.waterRate * v.waterDur / 1000 }));
+    r.fire = {
+      li, kgT: v.batKgT, kgDay: shredDay * v.batKgT, kgBay: r.bay.peak * v.batKgT, kgS1: t1 * v.batKgT, tYr: v.Q * v.batKgT / 1000, cellsYr: v.Q * li, cellsDay: shredDay * li, cellsBay: r.bay.peak * li, cellsS1: t1 * li,
+      bayM3, bayArea: bayM3 / r.bayH, bays: Math.ceil(bayM3 / v.pileMax),
+      piles, governing: piles.reduce((a, x) => x.m3 > a.m3 ? x : a)
+    };
+    return r;
+  }
+
+  // Detection bay, simulated hour by hour, first in first out.
+  // MSW is shredded evenly over a daily window from shredStart (Mon–Sat); each refill removes a whole batch at fillStart
+  // and may only take material that has been in the bay for at least holdH hours. Binary-search the smallest standing
+  // stock that never starves a refill, then report the steady-state peak and the age of material at loading.
+  function baySim(v, r, shredDay, t1) {
+    const W = Math.max(0.25, r.shred.mswH > 0 ? r.shred.hDay : v.shredAvail / (v.weeks * WORK));
+    const rate = shredDay / W, H = 8 * 7 * 24, REC = 5 * 7 * 24;
+    const s0 = v.shredStart, fh = Math.round(v.fillStart);
+    const fills = d => r.plan.filter(p => p.refill === d % 7).length;
+    const shredIn = h => {
+      const d = Math.floor(h / 24), hod = h % 24;
+      if (d % 7 >= WORK) return 0;
+      return rate * Math.max(0, Math.min(hod + 1, s0 + W) - Math.max(hod, s0));
+    };
+    function run(S0, record) {
+      const lots = [{ t: S0, at: -1e9 }];
+      const out = { ok: true, peak: 0, maxAge: 0, minAge: Infinity, byDay: [] };
+      let day = null;
+      for (let h = 0; h < H; h++) {
+        const d = Math.floor(h / 24), hod = h % 24;
+        if (hod === fh && fills(d)) {
+          let need = fills(d) * t1;
+          const elig = lots.filter(l => h - l.at >= v.holdH - 1e-9).reduce((a, l) => a + l.t, 0);
+          if (elig + 1e-6 < need) { out.ok = false; if (!record) return out; }
+          while (need > 1e-9 && lots.length && h - lots[0].at >= v.holdH - 1e-9) {
+            const lot = lots[0], take = Math.min(lot.t, need);
+            if (record && h >= REC && lot.at > -1e8) { out.maxAge = Math.max(out.maxAge, h - lot.at); out.minAge = Math.min(out.minAge, h - lot.at); }
+            lot.t -= take; need -= take;
+            if (lot.t <= 1e-9) lots.shift();
+          }
+        }
+        const sIn = shredIn(h);
+        if (sIn > 0) lots.push({ t: sIn, at: h + 1 }); // stamped at the end of the hour (conservative)
+        if (record && h >= REC && h < REC + 168) {
+          const stock = lots.reduce((a, l) => a + l.t, 0);
+          const elig = lots.filter(l => h + 1 - l.at >= v.holdH - 1e-9).reduce((a, l) => a + l.t, 0);
+          if (!day || day.dow !== d % 7) { day = { dow: d % 7, peak: -1, holding: 0, cleared: 0, loaded: fills(d) * t1, shred: d % 7 < WORK ? shredDay : 0 }; out.byDay.push(day); }
+          if (stock > day.peak) { day.peak = stock; day.cleared = elig; day.holding = stock - elig; }
+        }
+        if (record && h >= REC) out.peak = Math.max(out.peak, lots.reduce((a, l) => a + l.t, 0));
+      }
+      return out;
+    }
+    let lo = 0, hi = 30 * Math.max(t1, 1);
+    for (let k = 0; k < 40; k++) { const mid = (lo + hi) / 2; if (run(mid, false).ok) hi = mid; else lo = mid; }
+    const res = run(hi, true);
+    res.window = W;
+    return res;
+  }
+
+  // ---------- Inputs UI ----------
+  const inputsEl = document.getElementById("inputs");
+  const densRange = document.getElementById("densRange");
+  function buildInputs() {
+    inputsEl.innerHTML = GROUPS.map(g => `
+      <details class="grp" ${g.open ? "open" : ""}>
+        <summary>${esc(g.title)}</summary>
+        <div class="fields">
+          ${g.fields.map(([k, lab, u, , step, asm]) => `
+            <label for="in_${k}">${esc(lab)}${asm ? '<span class="asm">assumed</span>' : ""}</label>
+            <span class="inp"><input id="in_${k}" data-k="${k}" type="number" step="${step}" inputmode="decimal"><span class="u">${esc(u)}</span></span>`).join("")}
+        </div>
+      </details>`).join("");
+    inputsEl.addEventListener("input", e => {
+      const k = e.target.dataset && e.target.dataset.k;
+      if (!k) return;
+      const x = parseFloat(e.target.value);
+      if (!isFinite(x)) return;
+      state.v[k] = x;
+      state.build = matchBuild(state.v);
+      render();
+    });
+    densRange.addEventListener("input", () => { state.v.rho = +densRange.value / 1000; render(); });
+  }
+  function matchBuild(v) {
+    for (const b of ["b1", "b40", "b8", "b2"]) {
+      const p = buildValues(b);
+      if (Object.keys(p).every(k => k === "rho" || Math.abs(p[k] - v[k]) < 1e-9)) return b;
+    }
+    return "custom";
+  }
+  function syncInputs() {
+    const base = buildValues(BUILDS[state.build] ? state.build : "b40");
+    inputsEl.querySelectorAll("input[data-k]").forEach(inp => {
+      const k = inp.dataset.k;
+      if (document.activeElement !== inp) inp.value = state.v[k];
+      inp.classList.toggle("changed", Math.abs(base[k] - state.v[k]) > 1e-9);
+    });
+    densRange.value = Math.round(state.v.rho * 1000);
+    const pct = (state.v.rho / 0.35 - 1) * 100;
+    document.getElementById("densVal").textContent = `${f0(state.v.rho * 1000)} kg/m³ (${pct >= 0 ? "+" : ""}${f0(pct)}%)`;
+    document.querySelectorAll("#buildSeg button").forEach(b => b.classList.toggle("active", b.dataset.build === state.build));
+  }
+
+  // ---------- Tooltip ----------
+  const tip = document.getElementById("tip");
+  function showTip(e, html) {
+    tip.innerHTML = html; tip.style.display = "block";
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = e.clientX + 14, y = e.clientY + 14;
+    if (x + w > innerWidth - 8) x = e.clientX - w - 14;
+    if (y + h > innerHeight - 8) y = e.clientY - h - 14;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function bindTips(root) {
+    root.querySelectorAll("[data-tip]").forEach(el => {
+      el.addEventListener("mousemove", e => showTip(e, el.getAttribute("data-tip")));
+      el.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+    });
+  }
+  const kpi = (l, val, unit, s) => `<div class="kpi"><div class="l">${l}</div><div class="v">${val}<small>${unit}</small></div><div class="s">${s}</div></div>`;
+
+  // ---------- KPIs ----------
+  function renderKpis(v, r) {
+    document.getElementById("kpis").innerHTML = [
+      kpi("Stage 1 load per tunnel", f0(r.s1.t), "t", `${f0(r.s1.m3)} m³ · fill ${f2(r.s1.fill)} m`),
+      kpi("Capacity at " + f1(v.maxFill) + " m", f0(r.s1.cap), "t", `${r.s1.spareYr >= 0 ? "spare" : "short"} ${f0(Math.abs(r.s1.spareYr))} t/yr`),
+      kpi("Turn into stage 2", f0(r.s2.t), "t", `${f0(r.s2.m3)} m³ · fill ${f2(r.s2.fill)} m`),
+      r.shred.mswH > 0
+        ? kpi("Shredder, MSW", f1(r.shred.rate), "t/h", `MSW ${f0(r.shred.mswH)} h/yr (${f1(r.shred.hDay)} h/day) · bulky ${f0(r.shred.bulkyH)} h/yr${r.shred.sep ? " on SH-02" : ""}`)
+        : kpi("Shredder hours short", f0(-r.shred.mswH), "h/yr", `bulky alone needs ${f0(r.shred.bulkyH)} of ${f0(v.shredAvail)} h, leaving no MSW time`),
+      kpi("Loader hours needed", f0(r.loaderYrNeed), "h/yr", `${r.loaders} loader(s) at ${f0(v.loaderYr)} h/yr · peak day ${f1(r.maxLoaderH)} h`),
+      kpi("Detection bay", f0(r.fire.bayM3), "m³", `${f0(r.bay.peak)} t · ${f0(r.fire.bayArea)} m² at ${f1(r.bayH)} m`)
+    ].join("");
+  }
+
+  // ---------- Recommended design (interim, before Portadown data) ----------
+  function renderDesign(v, r) {
+    const b = r.bay, fr = r.fire, bays = fr.bays, perBay = fr.bayM3 / bays;
+    const rows = [
+      ["Tunnels", `${r.N} + ${r.N} (${(v.L1 === 40 && v.L2 === 33) || (v.L1 === 31 && v.L2 === 25) ? "WTT layout" : "identical tunnels"}): stage 1 ${f0(v.L1)} m, stage 2 ${f0(v.L2)} m. ${f0(r.s1.t)} t per fill at ${f2(r.s1.fill)} m (limit ${f2(v.maxFill)} m). Turns ${r.turnDays} into a stage 2 tunnel emptied the same morning.`],
+      ["Shredding", r.shred.sep ? `SH-01 for MSW only: ${f1(r.shred.rate)} t/h, ${hh(v.shredStart)}–${hh(v.shredStart + b.window)} Mon–Sat, Blazequel fire detection on the outfeed belt (no battery picking station). SH-02 for bulky waste: ≥ ${f0(v.bulkyT / v.sh2Avail)} t/h (${f0(r.shred.bulkyH)} h at ${f0(v.bulkyRate)} t/h). Each machine backs up the other.` : `One shredder for MSW and bulky waste: see the shredder warning.`],
+      ["Detection bays", `${bays} bays of ~${f0(perBay)} m³. Each day's shredding goes into its own group of bays. Pile ${f1(r.bayH)} m (${f1(v.bayFb)} m below the ${f1(v.bayWall)} m wall), ${f0(fr.bayArea)} m² in total. Hold ≥ ${f0(v.holdH)} h; actual watch ${f0(b.minAge)}–${f0(b.maxAge)} h. IR cameras with automatic monitor/deluge, and a quarantine bay for one truckload.`],
+      ["Daily rhythm", `07:00 L1 fills (${r.fillDays}) and/or turns (${r.turnDays}). ${hh(v.shredStart)} SH-01 shreds into the emptied bays. Morning loading and afternoon shredding never work in the same bays at the same time.`],
+      ["Output route", `Stage 2 → <b>OS-01 storage bay</b> (peak ${f0(r.os.peak)} t / ${f0(r.os.m3)} m³, ${r.os.bays} bay${r.os.bays > 1 ? "s" : ""}, ${f0(r.os.area)} m² at ${f1(r.bayH)} m) → <b>DH-01 dosing hopper</b> (${f0(v.hopperM3)} m³ ≈ ${f0(r.os.hopperMin)} min of feed) → <b>SP-01 secondary processing</b> ${f0(v.spH)} h/yr, needs ${f1(r.os.spRate)} t/h average (rated ${f0(v.spRate)} t/h${v.spRate < r.os.spRate ? " ✗" : " ✓"}), ${hh(v.spStart)}–${hh(v.spStart + r.os.spHday)}. A tunnel can't go straight to the hopper: emptying runs at ~${f0(r.os.emptyRate)} t/h so the turn can start, against ${f1(r.os.spRate)} t/h on the line.`],
+      ["Loaders", (() => { const n = r.loaderN, per = r.loaderTotal / Math.max(1, n - 1);
+        return `${f0(r.loaderTotal)} h/yr of loader work (${f0(v.bucket)} m³): tunnels ${f0(r.L1)} h, shredder feed + stage 2 emptying ${f0(r.L2)} h, hopper feed ${f0(r.os.feedH)} h. ` +
+          (n >= 3 && per <= v.loaderYr * 1.1 ? `<b>${n - 1} loaders at ~${f0(per)} h each</b> (${f0((per / v.loaderYr - 1) * 100)}% over ${f0(v.loaderYr)} h) or ${n} loaders.` : `<b>${n} loader${n > 1 ? "s" : ""}</b> at ${f0(v.loaderYr)} h each.`); })()],
+      ["Heat & fire water", `Heat plant sized to the staggered peak, ${f0(r.peakKw)} kW plus margin (WTT method gives ${f0(v.kw * r.N)} kW). Fire water ${f0(fr.governing.lpm)} l/min for ${f0(v.waterDur / 60)} h = ${f0(fr.governing.water)} m³, governed by the ${fr.governing.n.toLowerCase()}, with containment to match plus rainfall.`]
+    ];
+    document.getElementById("designCard").innerHTML = `<h2>${state.build === "b40" ? "Selected design: 6 × 40 m (interim)" : "Design for this layout (interim)"}</h2>
+      <p class="sub">The best layout with today's inputs, before Portadown data arrives. Figures follow the inputs on the left.</p>
+      <div class="tblwrap"><table><tbody>${rows.map(([a, t]) => `<tr><td style="font-weight:600;vertical-align:top">${a}</td><td style="white-space:normal">${t}</td></tr>`).join("")}</tbody></table></div>`;
+  }
+
+  // ---------- Alerts ----------
+  function renderAlerts(v, r) {
+    const A = [], add = (lvl, msg) => A.push({ lvl, msg });
+    [["Stage 1", r.s1], ["Stage 2", r.s2]].forEach(([n, p]) => {
+      if (p.fill > v.maxFill + 1e-9) add("crit", `${n}: the WTT tonnage needs ${f2(p.fill)} m, above the ${f2(v.maxFill)} m limit. Short by ${f0(-p.spareYr)} t/yr at ${f0(v.rho * 1000)} kg/m³.`);
+      else add("ok", `${n}: ${f0(p.t)} t fills to ${f2(p.fill)} m, within ${f2(v.maxFill)} m. Filling to the limit would take ${f0(p.cap)} t (${f0(p.spareYr)} t/yr spare).`);
+    });
+    if (v.rho > 0.35 + 1e-9) add("info", `At ${f0(v.rho * 1000)} kg/m³ the tunnels can't be filled to ${f2(v.maxFill)} m from the ${f0(v.Q)} t/yr supply: the pile sits at ${f2(r.s1.fill)} m. Filling to ${f2(v.maxFill)} m every time would only work with more feed or fewer turns.`);
+    if (Math.abs(v.L1 - v.L2) < 1e-9) add("info", `Identical tunnels (${f0(v.L1)} m): any tunnel can work as stage 1 or stage 2, so a stage 2 tunnel can take a full ${f0(r.s1.t)} t stage 1 batch if a stage 1 tunnel is out of service. Stage 2 runs underfilled at ${f2(r.s2.fill)} m (${f0(r.s2.cap - r.s2.t)} t spare per fill). A lower pile loses heat faster and changes the air per m², so ask WTT to confirm the stage 2 heat and aeration figures for this geometry.`);
+    add("ok", `Second tunnel available for turning: each turn goes into a stage 2 tunnel that was emptied to output earlier the same day (${r.plan.map(p => `${T(p.s1)}→${T(p.s2)} ${DAYS[p.turn]}`).join(", ")}).`);
+    if (r.res1 < 7) add("warn", `Stage 1 residence is ${r.res1} days (refill to turn) against WTT's 7. WTT's evaporation and degradation for stage 1 may be slightly optimistic. Confirm with WTT that 6 + 7 days still meets the stage 2 output spec.`);
+    { const n = r.loaderN, per = r.loaderTotal / Math.max(1, n - 1);
+      if (n >= 3 && per <= v.loaderYr * 1.1) add("warn", `Loaders: ${f0(r.loaderTotal)} h/yr in total (tunnels ${f0(r.L1)} h, shredder feed + emptying ${f0(r.L2)} h, dosing hopper feed ${f0(r.os.feedH)} h). ${n - 1} loaders would each run ~${f0(per)} h, ${f0((per / v.loaderYr - 1) * 100)}% over ${f0(v.loaderYr)} h. Run them slightly longer or add one more. (Cycle time is assumed.)`);
+      else if (n > 2) add("crit", `Loaders: ${f0(r.loaderTotal)} h/yr in total needs ${n} loaders at ${f0(v.loaderYr)} h each (tunnels ${f0(r.L1)} h, shredder feed + emptying ${f0(r.L2)} h, hopper feed ${f0(r.os.feedH)} h).`);
+      else add("ok", `Loaders: ${f0(r.loaderTotal)} h/yr in total fits ${n} loader${n > 1 ? "s" : ""} at ${f0(v.loaderYr)} h.`); }
+    if (v.spRate * v.spH < r.mb.out2 - 1) add("crit", `SP-01: rated ${f0(v.spRate)} t/h × ${f0(v.spH)} h = ${f0(v.spRate * v.spH)} t/yr, short of the ${f0(r.mb.out2)} t/yr stage 2 output by ${f0(r.mb.out2 - v.spRate * v.spH)} t. Either the line averages <b>${f1(r.mb.out2 / v.spH)} t/h</b> in ${f0(v.spH)} h, or it runs <b>${f0(r.mb.out2 / v.spRate)} h/yr</b> at ${f0(v.spRate)} t/h (${f1(r.mb.out2 / v.spRate / (v.weeks * WORK))} h/day).${r.N === 3 ? " Build 2 doubles this." : ""}`);
+    else add("ok", `SP-01: ${f0(v.spRate)} t/h × ${f0(v.spH)} h = ${f0(v.spRate * v.spH)} t/yr covers the ${f0(r.mb.out2)} t/yr output.`);
+    add("info", `Output: stage 2 empties ${f0(r.tOut)} t per tunnel into OS-01 at ~${f0(r.os.emptyRate)} t/h. SP-01 draws ${f0(r.mb.out2 / (v.weeks * WORK))} t/day at ${f1(r.os.spRate)} t/h through DH-01. OS-01 peaks at ${f0(r.os.peak)} t (${f0(r.os.m3)} m³), so ${r.os.bays} bay${r.os.bays > 1 ? "s" : ""} ≤ ${f0(v.pileMax)} m³. The output still carries batteries, so it needs IR and deluge like the detection bays. (Hopper size and output density are assumed.)`);
+    if (r.fire.bayM3 > v.pileMax) add("info", `Detection bay peaks at ${f0(r.fire.bayM3)} m³, above the ${f0(v.pileMax)} m³ pile limit. Split into ${r.fire.bays} fire-separated bays (${f0(r.fire.bayArea)} m² floor in total at ${f1(r.bayH)} m pile height).`);
+    if (r.bay.maxAge / 24 > v.dwellMax) add("warn", `Oldest shredded waste sits ${f0(r.bay.maxAge)} h (${f1(r.bay.maxAge / 24)} days) in the bay: Saturday's shredding waits over Sunday. That's over the ${f1(v.dwellMax)}-day target.`);
+    if (r.shred.sep) {
+      add(r.shred.bulkyOver ? "crit" : "ok", `Shredders: SH-01 takes MSW only, ${f0(v.Q)} t in ${f0(v.shredAvail)} h = ${f1(r.shred.rate)} t/h (${f1(r.shred.hDay)} h/day). SH-02 takes bulky waste, ${f0(v.bulkyT)} t ÷ ${f0(v.bulkyRate)} t/h = ${f0(r.shred.bulkyH)} h against ${f0(v.sh2Avail)} h available${r.shred.bulkyOver ? `: over. SH-02 needs ≥ ${f1(v.bulkyT / v.sh2Avail)} t/h or more hours` : ""}. Either machine can back up the other.`);
+    } else if (r.shred.mswH <= 0) {
+      const ex = 50, need = r.shred.bulkyH + v.Q / ex;
+      add("crit", `Shredder: bulky waste alone needs ${f0(v.bulkyT)} ÷ ${f0(v.bulkyRate)} = <b>${f0(r.shred.bulkyH)} h/yr</b> (${f1(r.shred.bulkyHday)} h/day Mon–Sat), ${f1(r.shred.bulkyH / v.shredAvail)}× the ${f0(v.shredAvail)} h available, leaving no time for MSW. On one machine, with MSW at ${ex} t/h (${f0(v.Q / ex)} h), the total is ${f0(need)} h/yr, or ${f1(need / (v.weeks * WORK))} h/day. Options: a second shredder for bulky waste, double shifts, or a much faster bulky line (${f0(v.bulkyT / (v.shredAvail * 0.25))} t/h would fit bulky into a quarter of the year).`);
+    }
+    else if (!r.shred.sep) add("warn", `Shredder: bulky waste takes ${f0(v.bulkyT)} ÷ ${f0(v.bulkyRate)} = ${f0(r.shred.bulkyH)} h/yr (${f1(r.shred.bulkyHwk)} h/week), leaving ${f0(r.shred.mswH)} h for MSW. ${f0(v.Q)} t/yr in ${f0(r.shred.mswH)} h needs <b>${f1(r.shred.rate)} t/h</b> average (${f1(r.shred.hDay)} h/day, Mon–Sat), with no allowance for breakdowns or blade changes. Confirm ${f1(r.shred.rate)} t/h with the shredder supplier, or add shredder hours.`);
+    add("ok", `Every tunnel fill has had at least ${f0(r.bay.minAge)} h of IR watch in the detection bay (hold required: ${f0(v.holdH)} h). MSW shredded ${hh(v.shredStart)}–${hh(v.shredStart + r.bay.window)}, fills start ${hh(v.fillStart)}.`);
+    if (r.mb.heatEvapRaw > r.mb.heatEvap + 0.5) add("crit", "The additional heat would evaporate more water than stage 2 still contains. The heat evaporation has been capped.");
+    add("info", `Heat: WTT's method sizes ${f0(v.kw * r.N)} kW (all stage 2 tunnels heating). With this plan at most ${r.peakHeat} of ${r.N} heat at once, so the peak is ${f0(r.peakKw)} kW.`);
+    const icon = { ok: "✓", warn: "!", crit: "✕", info: "i" }, order = { crit: 0, warn: 1, info: 2, ok: 3 };
+    A.sort((a, b) => order[a.lvl] - order[b.lvl]);
+    document.getElementById("alerts").innerHTML = A.map(a => `<div class="alert ${a.lvl}"><span class="ic">${icon[a.lvl]}</span><span>${a.msg}</span></div>`).join("");
+  }
+
+  // ---------- Gantt ----------
+  function renderGantt(v, r) {
+    const svg = document.getElementById("gantt");
+    const left = 92, cell = 46, rowH = 24, top = 34, gap = 10, N = r.N;
+    const W = left + 14 * cell + 4, H = top + 2 * N * rowH + gap + 6;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("width", W); svg.setAttribute("height", H);
+    const COL = { fill: "var(--s-fill)", turn: "var(--s-turn)", out: "var(--s-out)", heat: "var(--s-heat)", comp: "var(--s-comp)" };
+    let s = "";
+    for (let d = 0; d < 14; d++) {
+      const dow = d % 7, x = left + d * cell;
+      if (dow === 6) s += `<rect x="${x}" y="${top - 4}" width="${cell}" height="${H - top}" fill="var(--surface-2)"/>`;
+      s += `<text x="${x + cell / 2}" y="${top - 18}" font-size="10" text-anchor="middle" fill="var(--text-muted)">Wk ${d < 7 ? 1 : 2}</text>`;
+      s += `<text x="${x + cell / 2}" y="${top - 7}" font-size="11" text-anchor="middle" fill="${dow === 6 ? "var(--text-muted)" : "var(--text-secondary)"}">${DAYS[dow]}</text>`;
+    }
+    r.states.forEach((row, i) => {
+      const stage = i < N ? 1 : 2, p = r.plan[i % N];
+      const y = top + i * rowH + (stage === 2 ? gap : 0);
+      s += `<text x="0" y="${y + 16}" font-size="12" fill="var(--text-primary)"><tspan font-weight="600">${T(i)}</tspan><tspan fill="var(--text-muted)"> · stage ${stage}</tspan></text>`;
+      for (let d = 0; d < 14; d++) {
+        const st = row[d], x = left + d * cell, dow = d % 7;
+        // Stage 1 tunnels are empty overnight between turn and refill
+        const emptyAfterTurn = stage === 1 && st === "comp" && ((dow - p.turn + 7) % 7) < ((p.refill - p.turn + 7) % 7);
+        let label, glyph = "", tipx = "";
+        if (st === "fill") { label = "③ Fill from detection bay"; glyph = "③"; tipx = tr("Load", `${f0(r.s1.t)} t · ${f0(r.s1.m3)} m³`) + tr("Fill height", f2(r.s1.fill) + " m"); }
+        else if (st === "turn") { label = `② Turn out → ${T(p.s2)}`; glyph = "②"; tipx = tr("Moved", `${f0(r.s2.t)} t · ${f0(r.s2.m3)} m³`); }
+        else if (st === "out") { label = `① Empty to output, then receive ${T(p.s1)}`; glyph = "①"; tipx = tr("Out", `${f0(r.tOut)} t`) + tr("In", `${f0(r.s2.t)} t`); }
+        else if (st === "heat") { const k = (dow - p.turn + 7) % 7; label = `Heating, day ${k} of ${v.hDays}`; tipx = tr("Heat", f0(v.kw) + " kW"); }
+        else label = "Composting";
+        const fill = COL[st];
+        s += `<rect x="${x + 1}" y="${y + 2}" width="${cell - 2}" height="${rowH - 4}" rx="3" fill="${fill}" data-tip="${esc(`<b>${T(i)} · ${DAYS[dow]} wk ${d < 7 ? 1 : 2}</b><br>${label}` + tipx)}"/>`;
+        if (glyph) s += `<text x="${x + cell / 2}" y="${y + 16}" font-size="12" text-anchor="middle" fill="#0b0b0b" pointer-events="none">${glyph}</text>`;
+        if (stage === 1 && st === "turn") {
+          // the tunnel is empty from the turn until the refill: show the overnight gap as a hatch on the right half
+          s += `<rect x="${x + cell / 2}" y="${y + 2}" width="${cell / 2 - 1}" height="${rowH - 4}" fill="url(#hatch)" pointer-events="none"/>`;
+        }
+      }
+    });
+    s = `<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--surface-2)"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--text-muted)" stroke-width="2"/></pattern></defs>` + s;
+    s += `<line x1="0" x2="${W}" y1="${top + N * rowH + gap / 2}" y2="${top + N * rowH + gap / 2}" stroke="var(--border)"/>`;
+    svg.innerHTML = s;
+    bindTips(svg);
+  }
+
+  // ---------- Daily sequence ----------
+  function renderDays(v, r) {
+    const bayByDow = {}; r.bay.byDay.forEach(x => bayByDow[x.dow] = x);
+    const rows = r.days.map(x => {
+      const steps = [];
+      x.turns.forEach(p => steps.push(`① Empty ${T(p.s2)} → output (${f0(r.tOut)} t)`, `② Turn ${T(p.s1)} → ${T(p.s2)} (${f0(r.s2.t)} t)`));
+      x.fills.forEach(p => steps.push(`③ Fill ${T(p.s1)} from bay (${f0(r.s1.t)} t)`));
+      if (x.dow === 6) steps.push("No loading. Tunnels composting, bay under camera watch");
+      const b = bayByDow[x.dow];
+      const over = x.loaderH > r.shiftDay;
+      return `<tr><td>${x.name}</td>
+        <td class="n">${x.shred ? f0(x.shred) : "—"}</td><td class="n">${x.shred ? f1(x.trucksIn) : "—"}</td>
+        <td style="white-space:normal;min-width:260px">${steps.join("<br>")}</td>
+        <td>${x.turns.length ? x.turns.map(p => `<span class="pill ok">✓ ${T(p.s2)} empty</span>`).join(" ") : "—"}</td>
+        <td class="n">${x.fillT ? f0(x.fillT) : "—"}</td><td class="n">${x.turnT ? f0(x.turnT) : "—"}</td><td class="n">${x.outT ? f0(x.outT) : "—"}</td>
+        <td class="n">${x.outT ? f1(x.trucksOut) : "—"}</td>
+        <td class="n">${x.buckets || "—"}</td>
+        <td class="n">${x.loaderH ? f1(x.loaderH) : "—"}${over ? ' <span class="pill crit">✕</span>' : ""}</td>
+        <td class="n">${b ? f0(b.peak) : "—"}</td></tr>`;
+    }).join("");
+    const t = r.days.reduce((a, x) => ({ shred: a.shred + x.shred, tin: a.tin + x.trucksIn, fill: a.fill + x.fillT, turn: a.turn + x.turnT, out: a.out + x.outT, tout: a.tout + x.trucksOut, b: a.b + x.buckets, h: a.h + x.loaderH }), { shred: 0, tin: 0, fill: 0, turn: 0, out: 0, tout: 0, b: 0, h: 0 });
+    document.getElementById("dayTable").innerHTML = `
+      <thead><tr><th>Day</th><th class="n">Shredded t</th><th class="n">Trucks in</th><th>Sequence</th><th>2nd tunnel check</th>
+      <th class="n">Bay → S1 t</th><th class="n">S1 → S2 t</th><th class="n">S2 out t</th><th class="n">Trucks out</th>
+      <th class="n">Buckets</th><th class="n">Loader h</th><th class="n">Bay peak t</th></tr></thead>
+      <tbody>${rows}
+      <tr class="tot"><td>Week</td><td class="n">${f0(t.shred)}</td><td class="n">${f1(t.tin)}</td><td></td><td></td><td class="n">${f0(t.fill)}</td><td class="n">${f0(t.turn)}</td><td class="n">${f0(t.out)}</td><td class="n">${f1(t.tout)}</td><td class="n">${t.b}</td><td class="n">${f1(t.h)}</td><td></td></tr>
+      </tbody>`;
+  }
+
+  // ---------- Tunnel cross-sections + density table ----------
+  function tunnelSvg(name, p, v, maxL, extra) {
+    const W = 440, H = 190, pad = 34;
+    const maxH = Math.max(v.Ht, p.fill) * 1.05;
+    const sy = (H - pad - 20) / maxH, sx = (W - pad - 96) / maxL;
+    const x0 = pad, y0 = H - pad, tw = p.L * sx, th = v.Ht * sy, dw = v.dead * sx, fh = p.fill * sy, lim = v.maxFill * sy;
+    const over = p.fill > v.maxFill + 1e-9;
+    let s = `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="${name} tunnel section">`;
+    s += `<rect x="${x0}" y="${y0 - th}" width="${tw}" height="${th}" fill="var(--surface-2)" stroke="var(--border)"/>`;
+    s += `<rect x="${x0}" y="${y0 - th}" width="${dw}" height="${th}" fill="var(--grid)"/>`;
+    s += `<rect x="${x0 + dw + 1}" y="${y0 - fh}" width="${Math.max(0, tw - dw - 2)}" height="${fh}" fill="${over ? "var(--s-heat)" : "var(--s-org)"}" opacity=".85" data-tip="${esc(`<b>${name} pile</b>` + tr("Weight", f0(p.t) + " t") + tr("Volume", f0(p.m3) + " m³") + tr("Filling height", f2(p.fill) + " m") + tr("Capacity at limit", f0(p.cap) + " t"))}"/>`;
+    s += `<line x1="${x0}" x2="${x0 + tw}" y1="${y0 - lim}" y2="${y0 - lim}" stroke="var(--text-secondary)" stroke-dasharray="4 3"/>`;
+    const close = Math.abs(fh - lim) < 14;
+    s += `<text x="${x0 + tw + 6}" y="${y0 - lim + (close ? -4 : 4)}" font-size="11" fill="var(--text-secondary)">limit ${f2(v.maxFill)} m</text>`;
+    s += `<text x="${x0 + tw + 6}" y="${y0 - fh + (close ? 12 : 4)}" font-size="12" font-weight="600" fill="var(--text-primary)">fill ${f2(p.fill)} m</text>`;
+    s += `<text x="${x0 + tw + 6}" y="${y0 - th + 4}" font-size="11" fill="var(--text-muted)">roof ${f1(v.Ht)} m</text>`;
+    s += `<text x="${x0 + dw / 2}" y="${y0 - th - 6}" font-size="10" text-anchor="middle" fill="var(--text-muted)">door</text>`;
+    s += `<line x1="${x0}" x2="${x0 + tw}" y1="${y0 + 8}" y2="${y0 + 8}" stroke="var(--text-muted)"/>`;
+    s += `<text x="${x0 + tw / 2}" y="${y0 + 22}" font-size="11" text-anchor="middle" fill="var(--text-secondary)">${f1(p.L)} m × ${f1(v.Wd)} m (effective ${f1(p.L - v.dead)} m)</text></svg>`;
+    return `<div><h3>${name}</h3>${s}<div class="tblwrap"><table><tbody>
+      <tr><td>Load</td><td class="n">${f0(p.t)} t</td><td>Volume</td><td class="n">${f0(p.m3)} m³</td></tr>
+      <tr><td>Capacity at ${f1(v.maxFill)} m</td><td class="n">${f0(p.cap)} t</td><td>Headroom</td><td class="n">${f2(v.Ht - p.fill)} m</td></tr>
+      ${extra}</tbody></table></div></div>`;
+  }
+  function renderTunnels(v, r) {
+    const maxL = Math.max(v.L1, v.L2);
+    const b1 = Math.ceil(r.s1.m3 / v.bucket), b2 = Math.ceil(r.s2.m3 / v.bucket);
+    const s1n = `Stage 1 · ${r.plan.map(p => T(p.s1)).join(", ")}`, s2n = `Stage 2 · ${r.plan.map(p => T(p.s2)).join(", ")}`;
+    document.getElementById("tunnels").innerHTML =
+      tunnelSvg(s1n, r.s1, v, maxL, `<tr><td>Residence</td><td class="n">${r.res1} d</td><td>Buckets to fill</td><td class="n">${b1}</td></tr>`) +
+      tunnelSvg(s2n, r.s2, v, maxL, `<tr><td>Residence</td><td class="n">${r.res2} d</td><td>Out per tunnel</td><td class="n">${f0(r.tOut)} t</td></tr>`);
+    bindTips(document.getElementById("tunnels"));
+    const rows = [350, 385, 420].map(k => {
+      const x = compute(Object.assign({}, v, { rho: k / 1000 }));
+      const cur = Math.abs(k / 1000 - v.rho) < 1e-9;
+      return `<tr${cur ? ' style="font-weight:600"' : ""}><td>${k} kg/m³ ${k === 350 ? "(design min)" : "(+" + f0((k / 350 - 1) * 100) + "%)"}</td>
+        <td class="n">${f0(x.s1.m3)}</td><td class="n">${f2(x.s1.fill)}</td><td class="n">${f0(x.s1.cap)}</td><td class="n">${f0(x.s1.spareYr)}</td>
+        <td class="n">${f0(x.fire.bayM3)}</td><td class="n">${f0(x.fire.bayArea)}</td></tr>`;
+    }).join("");
+    document.getElementById("densTable").innerHTML = `<thead><tr><th>Density</th><th class="n">m³ / tunnel</th><th class="n">Fill height m</th><th class="n">t at ${f1(v.maxFill)} m</th><th class="n">Spare t/yr</th><th class="n">Bay m³</th><th class="n">Bay floor m²</th></tr></thead><tbody>${rows}</tbody>`;
+  }
+
+  // ---------- Fire strategy ----------
+  function renderFire(v, r) {
+    const fr = r.fire, b = r.bay;
+    document.getElementById("fireKpis").innerHTML = [
+      kpi("Bay peak stock", f0(b.peak), "t", `${f0(fr.bayM3)} m³ at ${f0(v.rho * 1000)} kg/m³`),
+      kpi("Bay floor area", f0(fr.bayArea), "m²", `pile ${f1(r.bayH)} m high · ${fr.bays} bay${fr.bays > 1 ? "s" : ""} ≤ ${f0(v.pileMax)} m³`),
+      kpi("Watch time before tunnel", f0(b.minAge), "h", `min · max ${f0(b.maxAge)} h (hold ${f0(v.holdH)} h)`),
+      kpi("Batteries shredded / day", f0(fr.kgDay), "kg", `≈ ${f0(fr.cellsDay)} units · ${f1(fr.kgBay / 1000)} t in bay at peak`),
+      kpi("Fire water, governing pile", f0(fr.governing.water), "m³", `${f0(fr.governing.lpm)} l/min · ${fr.governing.n.toLowerCase()}`)
+    ].join("");
+
+    // Bay chart: stacked holding / cleared per day (Mon–Sun)
+    const svg = document.getElementById("bayChart");
+    const W = svg.clientWidth || 600, H = 230, left = 52, right = 10, top = 24, bot = 28;
+    const data = b.byDay.slice().sort((a, c) => a.dow - c.dow);
+    const maxV = Math.max(1, ...data.map(x => x.holding + x.cleared));
+    const pw = Math.pow(10, Math.floor(Math.log10(maxV))), nice = Math.ceil(maxV / pw * 1.1) * pw;
+    const sy = (H - top - bot) / nice, bw = (W - left - right) / 7;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H);
+    let s = "";
+    for (let i = 0; i <= 4; i++) {
+      const val = nice * i / 4, y = H - bot - val * sy;
+      s += `<line x1="${left}" x2="${W - right}" y1="${y}" y2="${y}" stroke="var(--grid)"/>`;
+      s += `<text x="${left - 6}" y="${y + 4}" font-size="11" text-anchor="end" fill="var(--text-muted)">${f0(val)}</text>`;
+    }
+    s += `<text x="0" y="12" font-size="11" fill="var(--text-muted)">t</text>`;
+    const limT = v.pileMax * v.rho;
+    data.forEach((x, i) => {
+      const bx = left + i * bw + bw * 0.2, w = bw * 0.6;
+      let y = H - bot;
+      [["cleared", "var(--s-min)"], ["holding", "var(--s-water)"]].forEach(([k, col], j) => {
+        const h = x[k] * sy;
+        if (h <= 0.5) return;
+        s += `<rect x="${bx}" y="${y - h}" width="${w}" height="${Math.max(0, h - 2)}" rx="${j === 1 ? 3 : 0}" fill="${col}"/>`;
+        y -= h;
+      });
+      s += `<rect x="${left + i * bw}" y="${top}" width="${bw}" height="${H - top - bot}" fill="transparent" data-tip="${esc(`<b>${DAYS[x.dow]}</b>` + tr("Holding (< hold time)", f0(x.holding) + " t") + tr("Cleared for loading", f0(x.cleared) + " t") + tr("Peak in day", f0(x.peak) + " t / " + f0(x.peak / v.rho) + " m³") + tr("Shredded today", f0(x.shred) + " t") + tr("Loaded to tunnel", f0(x.loaded) + " t"))}"/>`;
+      s += `<text x="${bx + w / 2}" y="${H - 10}" font-size="11" text-anchor="middle" fill="var(--text-secondary)">${DAYS[x.dow]}</text>`;
+    });
+    if (limT < nice) {
+      const y = H - bot - limT * sy;
+      s += `<line x1="${left}" x2="${W - right}" y1="${y}" y2="${y}" stroke="var(--text-secondary)" stroke-dasharray="4 3"/>`;
+      s += `<text x="${W - right}" y="${y - 4}" font-size="11" text-anchor="end" fill="var(--text-secondary)">one pile ≤ ${f0(v.pileMax)} m³</text>`;
+    }
+    s += `<line x1="${left}" x2="${W - right}" y1="${H - bot}" y2="${H - bot}" stroke="var(--text-muted)"/>`;
+    svg.innerHTML = s;
+    bindTips(svg);
+    document.getElementById("bayNote").innerHTML =
+      `Peak = the highest stock at any hour. Each refill takes a whole ${f0(r.s1.t)} t batch (2 days of shredding) at ${hh(v.fillStart)}, and only waste that has been in the bay ${f0(v.holdH)} h is eligible. If the hold is longer than the gap between the end of shredding (${hh(v.shredStart + r.bay.window)}) and the next morning's fill, another day's shredding has to be stocked. ` +
+      `Size it at 350 kg/m³: lower density means more volume.`;
+
+    document.getElementById("fireTable").innerHTML =
+      `<thead><tr><th>Pile / compartment</th><th class="n">m³</th><th class="n">vs limit</th><th class="n">l/min</th><th class="n">Water m³</th></tr></thead><tbody>` +
+      fr.piles.map(p => `<tr><td>${p.n}</td><td class="n">${f0(p.m3)}</td><td class="n">${p.m3 > v.pileMax ? `<span class="pill warn">! ${f1(p.m3 / v.pileMax)}×</span>` : '<span class="pill ok">✓ ok</span>'}</td><td class="n">${f0(p.lpm)}</td><td class="n">${f0(p.water)}</td></tr>`).join("") + `</tbody>`;
+    document.getElementById("fireNote").innerHTML =
+      `Whole bay stock is ${f0(fr.bayM3)} m³. If it isn't split into fire-separated bays, it governs at ${f0(fr.bayM3 * v.waterRate)} l/min (${f0(fr.bayM3 * v.waterRate * v.waterDur / 1000)} m³). Split into ${fr.bays} bays, each is ≤ ${f0(v.pileMax)} m³ and the tunnels become the largest piles on site; their case in the fire plan is compartmentation (doors shut, aeration stopped, irrigation spigots as deluge). Containment must hold the governing fire-water volume plus rainfall.`;
+
+    const rows = [
+      ["Reception & shredder", (r.shred.mswH > 0 ? `${f0(r.shredDay)} t/day in ${f1(r.shred.hDay)} h · ${f1(r.shred.rate)} t/h` : `${f0(r.shredDay)} t/day · shredder hours short`), "No picking station, so every battery reaches the shredder. Visual check at the tipping face; Blazequel fire detection on the SH-01 outfeed belt; quarantine bay for one hot truckload (" + f0(v.payIn / v.rho) + " m³), away from the building"],
+      ["Detection bay (new)", `${f0(fr.bayM3)} m³ peak · ≥ ${f0(v.holdH)} h hold`, `Keep piles ≤ ${f1(r.bayH)} m, which is ${f1(v.bayFb)} m below the ${f1(v.bayWall)} m wall top, so IR cameras see the whole surface and burning material can't spill over; ${fr.bays} bays ≤ ${f0(v.pileMax)} m³ with fire walls; automatic monitor/deluge linked to the cameras; loader access from two sides so a hot spot can be dug out and taken to quarantine; first in, first out (the dashboard's plan never loads material that hasn't reached the hold time)`],
+      ["Bay → stage 1 fill", `${f0(r.s1.t)} t per fill · ${f1(fr.kgS1 / 1000)} t batteries (≈ ${f0(fr.cellsS1)})`, "Take material from the cleared face only; check with a handheld thermal camera before each fill; stop filling on any camera alarm"],
+      ["Stage 1 → stage 2 turn", `${r.N} turns/week`, "The receiving stage 2 tunnel must be empty and inspected before the turn starts (step ①). Turning is also a second chance to spot hot spots: pile-temperature probes and a rate-of-rise alarm"],
+      ["Stage 2 (heated)", `${f0(v.kw)} kW per tunnel · ${v.hDays} days`, "High-temperature trip on the heater, separate from the process control; cut heat and aeration on any fire alarm"],
+      ["Output → secondary processing", `OS-01 ${f0(r.os.m3)} m³ · ${f0(fr.tYr)} t/yr batteries (≈ ${f0(fr.cellsYr)})`, "Composting doesn't destroy cells. Put IR cameras and deluge on OS-01, fire detection on the SP-01 belts, and magnet/eddy-current separation early in SP-01. Treat the output store as a battery-bearing pile"]
+    ];
+    document.getElementById("fireCtrl").innerHTML =
+      `<thead><tr><th>Stage</th><th>Exposure</th><th style="white-space:normal">Controls to include in the FPP</th></tr></thead><tbody>` +
+      rows.map(([a, bb, c]) => `<tr><td>${a}</td><td class="mono">${bb}</td><td style="white-space:normal;min-width:320px">${c}</td></tr>`).join("") + `</tbody>`;
+  }
+
+  // ---------- Mass balance chart ----------
+  function renderMass(v, r) {
+    const svg = document.getElementById("massChart");
+    const W = svg.clientWidth || 600, rowH = 34, gap = 30, left = 110, right = 76, top = 8;
+    const st = [
+      { n: "Input", w: r.mb.W0, o: r.mb.O0, m: r.mb.M, sub: `DS ${f0(v.DS)}% · ODS ${f0(v.ODS)}%` },
+      { n: "Out stage 1", w: r.mb.W1, o: r.mb.O1, m: r.mb.M, sub: `DS ${f0(r.mb.DS1)}% · ODS ${f0(r.mb.ODS1)}%`, loss: [["evaporation", r.mb.evap1], ["degradation", r.mb.deg1]] },
+      { n: "Out stage 2", w: r.mb.W2, o: r.mb.O2, m: r.mb.M, sub: `DS ${f0(r.mb.DS2)}% · ODS ${f0(r.mb.ODS2)}%`, loss: [["evaporation", r.mb.evap2], ["degradation", r.mb.deg2], ["heat evaporation", r.mb.heatEvap]] }
+    ];
+    const H = top + st.length * (rowH + gap);
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H);
+    const sx = (W - left - right) / v.Q;
+    let s = "";
+    st.forEach((x, i) => {
+      const y = top + i * (rowH + gap), tot = x.w + x.o + x.m;
+      s += `<text x="0" y="${y + 14}" font-size="12" font-weight="600" fill="var(--text-primary)">${x.n}</text>`;
+      s += `<text x="0" y="${y + 29}" font-size="11" fill="var(--text-muted)">${x.sub}</text>`;
+      let xx = left;
+      [["Water", x.w, "var(--s-water)"], ["Organic DS", x.o, "var(--s-org)"], ["Mineral DS", x.m, "var(--s-min)"]].forEach(([lab, val, col], j) => {
+        s += `<rect x="${xx}" y="${y}" width="${Math.max(0, val * sx - 2)}" height="${rowH}" fill="${col}" rx="${j === 2 ? 4 : 0}" data-tip="${esc(`<b>${x.n} · ${lab}</b>` + tr("t/yr", f0(val)) + tr("Share", f1(val / tot * 100) + "%"))}"/>`;
+        xx += val * sx;
+      });
+      s += `<text x="${left + tot * sx + 6}" y="${y + rowH / 2 + 4}" font-size="12" fill="var(--text-primary)" font-family="IBM Plex Mono">${f0(tot)} t</text>`;
+      if (x.loss) s += `<text x="${left}" y="${y - 8}" font-size="11" fill="var(--text-muted)">− ${x.loss.map(l => `${l[0]} ${f0(l[1])} t`).join(" · ")}</text>`;
+    });
+    svg.innerHTML = s;
+    bindTips(svg);
+  }
+
+  // ---------- Validation vs WTT ----------
+  function renderValidation(v, r) {
+    const k = v.Q / WTT.Q;
+    document.getElementById("valSub").textContent = k === 1
+      ? `The model recomputes the WTT ${v.N}-tunnel sheet. The Δ column should be ≈0 at 350 kg/m³.`
+      : `WTT's sheet is for 75 kt. Mass flows are scaled ×${f2(k)} for comparison; per-tunnel values stay the same when tunnels double with throughput.`;
+    if (Math.abs(v.rho - 0.35) > 1e-9) document.getElementById("valSub").textContent += " Per-tunnel volume and height rows are hidden because WTT used 350 kg/m³.";
+    const d35 = Math.abs(v.rho - 0.35) < 1e-9;
+    const n3 = d35 && Math.abs(v.Q / v.N - 25000) < 1e-6, n4 = d35 && Math.abs(v.Q / v.N - 18750) < 1e-6;
+    const ref = {
+      p1: n3 && v.L1 === 40 ? WTT.p1 : n4 && v.L1 === 31 ? WTT.p1_4 : null,
+      p2: n3 && v.L2 === 33 ? WTT.p2 : n4 && v.L2 === 25 ? WTT.p2_4 : null
+    };
+    const rows = [
+      ["Stage 1 water evaporation", WTT.evap1 * k, r.mb.evap1, "t/yr", 0],
+      ["Stage 1 organics degradation", WTT.deg1 * k, r.mb.deg1, "t/yr", 0],
+      ["Output stage 1", WTT.out1 * k, r.mb.out1, "t/yr", 0],
+      ["Stage 2 water evaporation", WTT.evap2 * k, r.mb.evap2, "t/yr", 0],
+      ["Additional-heat evaporation", WTT.heatEvap * k, r.mb.heatEvap, "t/yr", 0],
+      ["Output stage 2", WTT.out2 * k, r.mb.out2, "t/yr", 0],
+      ["Total mass reduction", WTT.reduction, r.mb.reduction, "%", 2],
+      ["Heat input", WTT.kWh * k, r.mb.kWh, "kWh/yr", 0]
+    ].concat(ref.p1 ? [
+      ["S1 weight / tunnel", ref.p1.t, r.s1.t, "t", 0],
+      ["S1 volume / tunnel", ref.p1.m3, r.s1.m3, "m³", 0],
+      ["S1 filling height", ref.p1.fill, r.s1.fill, "m", 2]
+    ] : []).concat(ref.p2 ? [
+      ["S2 weight / tunnel", ref.p2.t, r.s2.t, "t", 0],
+      ["S2 volume / tunnel", ref.p2.m3, r.s2.m3, "m³", 0],
+      ["S2 filling height", ref.p2.fill, r.s2.fill, "m", 2]
+    ] : []);
+    document.getElementById("valTable").innerHTML =
+      `<thead><tr><th>Item</th><th class="n">WTT</th><th class="n">Model</th><th class="n">Δ</th><th></th></tr></thead><tbody>` +
+      rows.map(([n, a, b, u, d]) => {
+        const diff = b - a, tol = Math.max(Math.abs(a) * 0.005, d === 0 ? 1.5 * k : Math.pow(10, -d) * 1.5);
+        const ok = Math.abs(diff) <= tol;
+        return `<tr><td>${n} <span style="color:var(--text-muted)">${u}</span></td><td class="n">${nf(d).format(a)}</td><td class="n">${nf(d).format(b)}</td><td class="n">${diff >= 0 ? "+" : "−"}${nf(d).format(Math.abs(diff))}</td><td>${ok ? '<span class="pill ok">✓ match</span>' : '<span class="pill warn">! differs</span>'}</td></tr>`;
+      }).join("") + "</tbody>";
+  }
+
+  // ---------- Build comparison ----------
+  function renderCompare(v) {
+    const keys = ["b1", "b40", "b8", "b2"];
+    const R = keys.map(k => compute(Object.assign({}, v, BUILDS[k])));
+    const rows = [
+      ["Throughput (t/yr)", x => x.v.Q, 0],
+      ["Tunnels (stage 1 + stage 2)", x => `${x.N} × ${f0(x.v.L1)} m + ${x.N} × ${f0(x.v.L2)} m`],
+      ["Turn days → refill days", x => `${x.turnDays} → ${x.fillDays}`],
+      ["Stage 1 load per tunnel (t)", x => x.s1.t, 0],
+      ["Stage 1 / stage 2 fill height (m)", x => `${f2(x.s1.fill)} / ${f2(x.s2.fill)}`],
+      ["Tunnel floor built (m²)", x => x.N * (x.v.L1 + x.v.L2) * x.v.Wd, 0],
+      ["Loader time, peak day (h)", x => x.maxLoaderH, 1],
+      ["Loader hours incl. feed + hopper (h/yr)", x => x.loaderTotal, 0],
+      ["Loaders at 1,600 h", x => x.loaderN, 0],
+      ["Detection bay peak (t)", x => x.bay.peak, 0],
+      ["Detection bay peak (m³)", x => x.fire.bayM3, 0],
+      ["Fire bays ≤ pile limit", x => x.fire.bays, 0],
+      ["OS-01 storage peak (m³)", x => x.os.m3, 0],
+      ["Largest pile (fire water, m³)", x => x.fire.governing.water, 0],
+      ["Heat per heated tunnel (kW)", x => x.v.kw, 0],
+      ["Heat peak, staggered (kW)", x => x.peakKw, 0],
+      ["Output (t/yr)", x => x.mb.out2, 0]
+    ];
+    document.getElementById("cmpTable").innerHTML = `<thead><tr><th>Metric</th>${keys.map(k => `<th class="n">${BUILD_LABEL[k]}</th>`).join("")}</tr></thead><tbody>` +
+      rows.map(([n, fn, d]) => `<tr><td>${n}</td>${R.map(x => { const val = fn(x); return `<td class="n">${typeof val === "number" ? nf(d).format(val) : val}</td>`; }).join("")}</tr>`).join("") + "</tbody>";
+  }
+
+  // ---------- CSV ----------
+  let last = null;
+  function exportCsv() {
+    if (!last) return;
+    const r = last;
+    const head = ["Day", "Shredded_t", "Step", "Tunnel_from", "Tunnel_to", "Tonnes", "m3"];
+    const lines = [head.join(",")];
+    r.days.forEach(x => {
+      if (x.shred) lines.push([x.name, x.shred.toFixed(1), "Shred to detection bay", "Shredder", "Bay", x.shred.toFixed(1), (x.shred / r.v.rho).toFixed(1)].join(","));
+      x.turns.forEach(p => {
+        lines.push([x.name, "", "1 Empty to output", T(p.s2), "Output", r.tOut.toFixed(1), (r.tOut / r.v.rho).toFixed(1)].join(","));
+        lines.push([x.name, "", "2 Turn", T(p.s1), T(p.s2), r.s2.t.toFixed(1), r.s2.m3.toFixed(1)].join(","));
+      });
+      x.fills.forEach(p => lines.push([x.name, "", "3 Fill from bay", "Bay", T(p.s1), r.s1.t.toFixed(1), r.s1.m3.toFixed(1)].join(",")));
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "tunnel-weekly-plan.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // ---------- Main ----------
+  function render() {
+    const v = state.v, r = compute(v);
+    last = r;
+    syncInputs();
+    renderDesign(v, r);
+    renderKpis(v, r);
+    renderAlerts(v, r);
+    renderGantt(v, r);
+    renderDays(v, r);
+    renderTunnels(v, r);
+    renderFire(v, r);
+    renderMass(v, r);
+    renderValidation(v, r);
+    renderCompare(v);
+    save();
+  }
+
+  buildInputs();
+  document.getElementById("buildSeg").addEventListener("click", e => {
+    const b = e.target.dataset.build;
+    if (!b || b === "custom") return;
+    state = { build: b, v: Object.assign(buildValues(b), { rho: state.v.rho }) };
+    render();
+  });
+  document.getElementById("btnReset").addEventListener("click", () => {
+    const b = BUILDS[state.build] ? state.build : "b40";
+    state = { build: b, v: buildValues(b) };
+    render();
+  });
+  document.getElementById("btnCsv").addEventListener("click", exportCsv);
+  document.getElementById("btnTheme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("tunnel_theme", root.dataset.theme); } catch (e) {}
+  });
+  try { const t = localStorage.getItem("tunnel_theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(render, 120); });
+  render();
+})();
+</script>
+</body>
+</html>
