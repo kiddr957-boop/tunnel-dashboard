@@ -404,6 +404,11 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["sh2Avail", "SH-02 available", "h/yr", 1600, 50],
       ["shredAvail", "SH-01 available", "h/yr", 1600, 50]
     ]},
+    { title: "Preprocessing (trommel + magnets)", open: true, fields: [
+      ["unders", "Trommel 80 mm unders", "%", 65, 1, true],
+      ["feFe", "Ferrous in MSW (samples 1–5)", "%", 1.29, 0.01],
+      ["feRec", "Ferrous caught by M1–M4", "%", 90, 1, true]
+    ]},
     { title: "Secondary processing", open: true, fields: [
       ["spRate", "Line rated throughput", "t/h", 33, 1],
       ["spH", "Line running hours", "h/yr", 1600, 50],
@@ -429,7 +434,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v19";
+  const STORE = "tunnel_plan_v20";
   let state = { build: "b40", v: buildValues("b40") }; // 6 × 40 m is the fixed layout
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
@@ -755,6 +760,8 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["Tunnels", r.single
         ? `${2 * r.N} × ${f0(v.L1)} m, <b>single pass</b>: load day 1, 12-day dwell, unload day 14, reload next day. ${f0(r.s1.t)} t per load at ${f2(r.s1.fill)} m. Loads ${r.fillDays}, unloads ${r.unloadDays}: ${r.weekendTasks ? r.weekendTasks + " weekend task(s) per 2 weeks" : "no weekend tunnel work"}.`
         : `${r.N} + ${r.N} (${(v.L1 === 40 && v.L2 === 33) || (v.L1 === 31 && v.L2 === 25) ? "WTT layout" : "identical tunnels"}): stage 1 ${f0(v.L1)} m, stage 2 ${f0(v.L2)} m. ${f0(r.s1.t)} t per fill at ${f2(r.s1.fill)} m (limit ${f2(v.maxFill)} m). Turns ${r.turnDays} into a stage 2 tunnel emptied the same morning.`],
+      ["Preprocessing", (() => { const fe = v.Q * v.feFe / 100, feIn = fe * v.feRec / 100, toTr = v.Q - fe * 0.6 /* M1 takes ~60% of ferrous */, ov = toTr * (1 - v.unders / 100);
+        return `SH-01 primary → M1 → <b>TR-01 trommel 80 mm</b> (${f1(toTr / r.shred.mswH)} t/h). Unders ${f0(v.unders)}% (${f0(toTr * v.unders / 100)} t/yr) → M2 → bays. Overs ${f0(100 - v.unders)}% (${f0(ov)} t/yr) → M3 → <b>SH-03 secondary shredder</b> at ~${f1(ov / r.shred.mswH)} t/h → M4 → bays. Blazequel on both shredder outfeeds; conveyors between units. Ferrous ${f2(v.feFe)}% = ${f0(fe)} t/yr; M1–M4 catch ~${f0(feIn)} t before the tunnels, M5 on SP-01 most of the rest. Tunnel figures keep the ${f0(v.Q)} t basis (${f1(feIn / v.Q * 100)}% conservative).`; })()],
       ["Shredding", r.shred.sep ? `SH-01 for MSW only: ${f1(r.shred.rate)} t/h, ${hh(v.shredStart)}–${hh(v.shredStart + b.window)} Mon–Sat, Blazequel fire detection on the outfeed belt (no battery picking station). SH-02 for bulky waste: ≥ ${f0(v.bulkyT / v.sh2Avail)} t/h (${f0(r.shred.bulkyH)} h at ${f0(v.bulkyRate)} t/h). Each machine backs up the other.` : `One shredder for MSW and bulky waste: see the shredder warning.`],
       ["Detection bays", `${bays} bays of ~${f0(perBay)} m³. Each day's shredding goes into its own group of bays. Pile ${f1(r.bayH)} m (${f1(v.bayFb)} m below the ${f1(v.bayWall)} m wall), ${f0(fr.bayArea)} m² in total. Hold ≥ ${f0(v.holdH)} h; actual watch ${f0(b.minAge)}–${f0(b.maxAge)} h. IR cameras with automatic monitor/deluge, and a quarantine bay for one truckload.`],
       ["Daily rhythm", r.single

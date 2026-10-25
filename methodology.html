@@ -148,7 +148,7 @@ a { color: var(--ink); }
 
 <!-- ================= SHEET 1 ================= -->
 <section class="sheet">
-  <div class="sheetno">sheet 1 of 6</div>
+  <div class="sheetno">sheet 1 of 7</div>
   <h1>Tunnel loading &amp; unloading: methodology</h1>
   <p class="note">How every number on the dashboard (<i>loading-dashboard.html</i>) is worked out, by hand. Build 1 at 350 kg/m³ unless stated.</p>
 
@@ -210,7 +210,7 @@ a { color: var(--ink); }
 
 <!-- ================= SHEET 2 ================= -->
 <section class="sheet">
-  <div class="sheetno">sheet 2 of 6</div>
+  <div class="sheetno">sheet 2 of 7</div>
 
   <div class="blk">
     <div class="ref">§3</div>
@@ -265,7 +265,7 @@ a { color: var(--ink); }
 
 <!-- ================= SHEET 3 ================= -->
 <section class="sheet">
-  <div class="sheetno">sheet 3 of 6</div>
+  <div class="sheetno">sheet 3 of 7</div>
 
   <div class="blk">
     <div class="ref">§5</div>
@@ -342,7 +342,7 @@ a { color: var(--ink); }
 
 <!-- ================= SHEET 4 ================= -->
 <section class="sheet">
-  <div class="sheetno">sheet 4 of 6</div>
+  <div class="sheetno">sheet 4 of 7</div>
 
   <div class="blk">
     <div class="ref">§8</div>
@@ -430,7 +430,7 @@ a { color: var(--ink); }
 </section>
 <!-- ================= SHEET 5 ================= -->
 <section class="sheet">
-  <div class="sheetno">sheet 5 of 6</div>
+  <div class="sheetno">sheet 5 of 7</div>
   <div class="blk">
     <div class="ref">§11</div>
     <h2>8-tunnel option (4 × 31 m + 4 × 25 m)</h2>
@@ -481,7 +481,7 @@ a { color: var(--ink); }
 </section>
 <!-- ================= SHEET 6 ================= -->
 <section class="sheet">
-  <div class="sheetno">sheet 6 of 6</div>
+  <div class="sheetno">sheet 6 of 7</div>
   <div class="blk">
     <div class="ref">§14</div>
     <h2>6 × 40 m: selected layout</h2>
@@ -505,5 +505,34 @@ a { color: var(--ink); }
     <div class="sticky">Identical tunnels mean one door, fan and floor design, and spares fit every tunnel. The catch is a lower, wider stage 2 pile: more surface and more air per tonne, so more heat loss. WTT's heat and aeration figures were for 33 m and need re-checking.</div>
   </div>
 </section>
+<!-- ================= SHEET 7 ================= -->
+<section class="sheet">
+  <div class="sheetno">sheet 7 of 7</div>
+  <div class="blk">
+    <div class="ref">§16</div>
+    <h2>Preprocessing to 80 mm</h2>
+    <p>SH-01 primary → M1 → TR-01 trommel 80 mm. Unders → M2 → bays. Overs → M3 → SH-03 secondary shredder → M4 → bays. M5 on the SP-01 output line.</p>
+    <div class="calc">trommel feed = 75,000 − M1 581 = <b>74,419 t/yr</b> ÷ 1,600 h = <span class="ans">46.5 t/h</span></div>
+    <div class="calc">unders 65% <span class="red">(assumed)</span> = <b>48,372 t</b> · overs 35% = <b>26,047 t</b></div>
+    <div class="calc">SH-03 in the same 1,600 h = 26,047 ÷ 1,600 = <span class="ans">16.3 t/h</span></div>
+  </div>
+  <div class="blk">
+    <div class="ref">§17</div>
+    <h2>5 magnets: ferrous balance</h2>
+    <div class="calc">ferrous = 1.29% (avg samples 1–5) × 75,000 = <b>968 t/yr</b></div>
+    <table class="hand">
+      <tr><th>magnet</th><th>where</th><th class="n">capture <span class="red">(assumed)</span></th><th class="n">t/yr</th></tr>
+      <tr><td>M1</td><td>after SH-01</td><td class="n">60% of 968</td><td class="n">581</td></tr>
+      <tr><td>M3</td><td>trommel overs, before SH-03</td><td class="n">70% of 232</td><td class="n">162</td></tr>
+      <tr><td>M4</td><td>after SH-03</td><td class="n">70% of 70</td><td class="n">49</td></tr>
+      <tr><td>M2</td><td>trommel unders</td><td class="n">50% of 155</td><td class="n">77</td></tr>
+      <tr><td>M5</td><td>SP-01 output line</td><td class="n">80% of 99</td><td class="n">79</td></tr>
+      <tr><td colspan="3"><b>total recovered</b></td><td class="n"><b>948</b></td></tr>
+    </table>
+    <div class="calc">to the tunnels = 75,000 − 869 = <b>74,131 t</b> → 1.2% under WTT's 75,000 t basis (kept as margin)</div>
+    <div class="sticky">The 65% split and every magnet efficiency are placeholders. A trommel trial on Coleraine MSW, or Portadown data, replaces them. M3 matters most: it protects SH-03 from tramp steel.</div>
+  </div>
+</section>
+
 
 

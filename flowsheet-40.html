@@ -121,29 +121,52 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <text x="243" y="280" font-size="11" text-anchor="middle" class="amber">1 truck · 57 m³ · outside</text>
     </g>
 
-    <!-- Feed to shredder (no battery picking station) -->
-    <path class="flow" d="M308 141 H500"/>
-    <text x="404" y="162" font-size="11" class="soft" text-anchor="middle">loader feed</text>
-    <text x="404" y="176" font-size="11" class="soft" text-anchor="middle">no picking station</text>
+    <!-- Feed to primary shredder (no battery picking station) -->
+    <path class="flow" d="M308 141 H340"/>
+    <g class="tag"><circle cx="324" cy="124" r="11"/><text x="324" y="128">3</text></g>
+    <g class="ld"><rect x="310" y="150" width="28" height="16" rx="2"/><text x="324" y="162">L2</text></g>
 
-    <!-- Shredder -->
-    <g class="tag"><circle cx="478" cy="124" r="11"/><text x="478" y="128">3</text></g>
+    <!-- SH-01 primary shredder -->
     <g>
-      <path class="eq-fill" d="M502 104 H622 L608 180 H516 Z"/>
-      <circle class="eq" cx="544" cy="140" r="17"/><circle class="eq" cx="580" cy="140" r="17"/>
-      <path class="eq" d="M532 140 l6 -8 l6 8 l6 -8 M568 140 l6 8 l6 -8 l6 8"/>
-      <text x="562" y="96" font-size="13" font-weight="700" text-anchor="middle">SH-01 MSW ONLY</text>
-      <text x="562" y="198" font-size="11" class="soft" text-anchor="middle">46.9 t/h · 1,600 h · 12:00–17:08</text>
-      <text x="562" y="212" font-size="11" class="amber" text-anchor="middle">BQ-01 Blazequel on outfeed belt</text>
+      <path class="eq-fill" d="M342 108 H442 L430 176 H354 Z"/>
+      <circle class="eq" cx="376" cy="140" r="15"/><circle class="eq" cx="408" cy="140" r="15"/>
+      <path class="eq" d="M366 140 l5 -7 l5 7 l5 -7 M398 140 l5 7 l5 -7 l5 7"/>
+      <text x="392" y="98" font-size="12" font-weight="700" text-anchor="middle">SH-01 PRIMARY</text>
+      <text x="392" y="192" font-size="10" class="soft" text-anchor="middle">46.9 t/h · 1,600 h</text>
+      <text x="392" y="205" font-size="10" class="soft" text-anchor="middle">12:00–17:08</text>
     </g>
+    <path class="flow" d="M442 141 H486"/>
+    <g><rect x="446" y="150" width="24" height="16" fill="none" stroke="#ffd166" stroke-width="1.5"/><text x="458" y="162" font-size="9" font-weight="700" text-anchor="middle" class="amber">BQ</text></g>
+    <g><circle cx="466" cy="126" r="9" fill="#0d3b73" stroke="#ffd166" stroke-width="1.5"/><text x="466" y="130" font-size="9" font-weight="700" text-anchor="middle" class="amber">M1</text></g>
 
-    <!-- Blazequel fire detection on the outfeed belt -->
-    <g><rect x="628" y="150" width="26" height="18" fill="none" stroke="#ffd166" stroke-width="1.5"/><text x="641" y="163" font-size="10" font-weight="700" text-anchor="middle" class="amber">BQ</text></g>
-    <g class="ld"><rect x="464" y="150" width="28" height="16" rx="2"/><text x="478" y="162">L2</text></g>
+    <!-- TR-01 trommel 80 mm -->
+    <g>
+      <rect class="eq-fill" x="486" y="118" width="100" height="44" rx="10"/>
+      <path class="eq" d="M496 118 V162 M512 118 V162 M528 118 V162 M544 118 V162 M560 118 V162 M576 118 V162" stroke-dasharray="2 4"/>
+      <text x="536" y="98" font-size="12" font-weight="700" text-anchor="middle">TR-01 TROMMEL</text>
+      <text x="536" y="111" font-size="10" class="soft" text-anchor="middle">80 mm · 46.5 t/h</text>
+    </g>
+    <!-- unders -->
+    <path class="flow" d="M586 141 H660"/>
+    <g><circle cx="604" cy="126" r="9" fill="#0d3b73" stroke="#ffd166" stroke-width="1.5"/><text x="604" y="130" font-size="9" font-weight="700" text-anchor="middle" class="amber">M2</text></g>
+    <text x="600" y="160" font-size="9" class="soft" text-anchor="end">&lt;80 · 65%</text>
+    <!-- overs -> secondary shredder -> join unders -->
+    <path class="flow" d="M536 162 V226"/>
+    <g><circle cx="552" cy="190" r="9" fill="#0d3b73" stroke="#ffd166" stroke-width="1.5"/><text x="552" y="194" font-size="9" font-weight="700" text-anchor="middle" class="amber">M3</text></g>
+    <text x="520" y="196" font-size="9" class="soft" text-anchor="end">&gt;80 · 35%</text>
+    <g>
+      <path class="eq-fill" d="M490 228 H582 L572 284 H500 Z"/>
+      <circle class="eq" cx="522" cy="254" r="12"/><circle class="eq" cx="550" cy="254" r="12"/>
+      <text x="536" y="300" font-size="12" font-weight="700" text-anchor="middle">SH-03 SECONDARY</text>
+      <text x="536" y="313" font-size="10" class="soft" text-anchor="middle">overs 26,047 t/yr · 16.3 t/h</text>
+    </g>
+    <path class="flow" d="M582 256 H626 V146"/>
+    <g><circle cx="604" cy="256" r="9" fill="#0d3b73" stroke="#ffd166" stroke-width="1.5"/><text x="604" y="260" font-size="9" font-weight="700" text-anchor="middle" class="amber">M4</text></g>
+    <g><rect x="596" y="266" width="24" height="16" fill="none" stroke="#ffd166" stroke-width="1.5"/><text x="608" y="278" font-size="9" font-weight="700" text-anchor="middle" class="amber">BQ</text></g>
+    <text x="640" y="232" font-size="9" class="soft">to bay</text>
 
     <!-- Detection bays -->
-    <path class="flow" d="M622 141 H660"/>
-    <g class="tag"><circle cx="641" cy="124" r="11"/><text x="641" y="128">4</text></g>
+    <g class="tag"><circle cx="645" cy="124" r="10"/><text x="645" y="128">4</text></g>
     <g>
       <text x="780" y="62" font-size="13" font-weight="700" text-anchor="middle">DB-01…04 DETECTION BAYS</text>
       <!-- camera + deluge -->
@@ -274,7 +297,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <text x="466" y="414" font-size="13" font-weight="700" text-anchor="middle">PROCESSING</text>
       <rect class="eq-fill" x="402" y="424" width="128" height="122"/>
       <circle class="eq" cx="440" cy="470" r="22"/><path class="eq" d="M424 456 L456 484 M424 484 L456 456"/>
-      <rect class="eq" x="474" y="452" width="46" height="18"/><text x="497" y="465" font-size="9" text-anchor="middle">MAG</text>
+      <rect class="eq" x="474" y="452" width="46" height="18"/><text x="497" y="465" font-size="9" text-anchor="middle">M5</text>
       <rect class="eq" x="474" y="476" width="46" height="18"/><text x="497" y="489" font-size="9" text-anchor="middle">ECS</text>
       <text x="466" y="516" font-size="10" class="soft" text-anchor="middle">screen · magnet · eddy</text>
       <text x="466" y="530" font-size="10" class="soft" text-anchor="middle">33 t/h · 1,600 h · 52,800 t/yr</text>
@@ -327,9 +350,9 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <text x="620" y="632" font-size="11" class="soft" text-anchor="middle">9,066 l/min · 3 h</text>
       <text x="620" y="646" font-size="11" class="soft" text-anchor="middle">1,632 m³ · tunnel governs</text>
     </g>
-    <path class="util" d="M560 596 V330 H780 V222"/>
+    <path class="util" d="M560 596 V350 H780 V222"/>
     <path class="util" d="M700 610 H720 V560 H1000 V520"/>
-    <text x="790" y="326" font-size="10" class="soft">to bay deluge + monitors</text>
+    <text x="790" y="346" font-size="10" class="soft">to bay deluge + monitors</text>
     <text x="1004" y="552" font-size="10" class="soft">to tunnel spigots</text>
     <g>
       <rect class="eq" x="540" y="690" width="160" height="58"/>
@@ -360,7 +383,7 @@ ol.notes b { color: var(--amber); font-weight: 600; }
       <text x="1042" y="742" font-size="11" class="soft">CLIENT</text><text x="1090" y="742" font-size="12" font-weight="600">RIVERRIDGE</text>
       <text x="1214" y="742" font-size="11" class="soft">BASIS</text><text x="1256" y="742" font-size="12" font-weight="600">WTT 26029 R1</text>
       <text x="1042" y="772" font-size="11" class="soft">DWG</text><text x="1076" y="772" font-size="12" font-weight="600" class="mono">26029-PFD-003</text>
-      <text x="1214" y="772" font-size="11" class="soft">REV</text><text x="1244" y="772" font-size="12" font-weight="600" class="mono">B · 02/10/26</text>
+      <text x="1214" y="772" font-size="11" class="soft">REV</text><text x="1244" y="772" font-size="12" font-weight="600" class="mono">C · 25/10/26</text>
       <text x="1042" y="798" font-size="11" class="soft">DRAWN</text><text x="1086" y="798" font-size="11">Claude (for review)</text>
       <text x="1214" y="798" font-size="11" class="soft">CHK</text><text x="1244" y="798" font-size="11">______ · SCALE NTS</text>
     </g>
@@ -424,8 +447,12 @@ ol.notes b { color: var(--amber); font-weight: 600; }
         <tbody>
           <tr><td class="no">1</td><td>MSW delivered</td><td class="n">75,000</td><td class="n">1,442</td><td class="n">63.0</td><td class="n">27,750</td><td class="n">214,286</td></tr>
           <tr><td class="no">2</td><td><i>Deleted rev C (no picking)</i></td><td class="n">–</td><td class="n">–</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
-          <tr><td class="no">3</td><td>MSW to shredder</td><td class="n">75,000</td><td class="n">1,442</td><td class="n">63.0</td><td class="n">27,750</td><td class="n">–</td></tr>
-          <tr><td class="no">4</td><td>Shredded MSW to detection bays</td><td class="n">75,000</td><td class="n">1,442</td><td class="n">63.0</td><td class="n">27,750</td><td class="n">214,286</td></tr>
+          <tr><td class="no">3</td><td>MSW to SH-01 primary</td><td class="n">75,000</td><td class="n">1,442</td><td class="n">63.0</td><td class="n">27,750</td><td class="n">–</td></tr>
+          <tr><td class="no">3a</td><td>SH-01 → M1 → TR-01 trommel (M1 takes 581 t Fe)</td><td class="n">74,419</td><td class="n">1,431</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
+          <tr><td class="no">4a</td><td>Unders &lt;80 mm (65%) → M2 → bays</td><td class="n">48,295</td><td class="n">929</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
+          <tr><td class="no">4b</td><td>Overs &gt;80 mm (35%) → M3 → SH-03 → M4 → bays</td><td class="n">25,836</td><td class="n">497</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
+          <tr><td class="no">16</td><td>Ferrous recovered M1–M5 (1.29% Fe, efficiencies assumed)</td><td class="n">948</td><td class="n">18</td><td class="n">–</td><td class="n">–</td><td class="n">–</td></tr>
+          <tr><td class="no">4</td><td>Shredded MSW to detection bays (74,131 t after M1–M4; WTT basis kept)</td><td class="n">75,000</td><td class="n">1,442</td><td class="n">63.0</td><td class="n">27,750</td><td class="n">214,286</td></tr>
           <tr><td class="no">5</td><td>Bays → stage 1 (3 × 481 t/wk)</td><td class="n">75,000</td><td class="n">1,442</td><td class="n">63.0</td><td class="n">27,750</td><td class="n">214,286</td></tr>
           <tr><td class="no">6</td><td>Stage 1 off-gas: water + degradation</td><td class="n">15,090</td><td class="n">290</td><td class="n">–</td><td class="n">13,022</td><td class="n">–</td></tr>
           <tr><td class="no">7</td><td>Turn stage 1 → stage 2 (3 × 384 t/wk)</td><td class="n">59,910</td><td class="n">1,152</td><td class="n">75.4</td><td class="n">14,728</td><td class="n">171,171</td></tr>
@@ -456,6 +483,8 @@ ol.notes b { color: var(--amber); font-weight: 600; }
         <li><b>Loaders:</b> with hopper feed, the total is 3,343 h/yr, so 2 loaders at ~1,670 h each (4% over 1,600) or 3.</li>
         <li>Heat plant sized to the staggered peak, 171 kW plus margin, not WTT's 257 kW. Fire water 1,632 m³ (stage 1 tunnel governs), with containment to match.</li>
         <li><b>6 × 40 m (identical tunnels):</b> stage 2 holds the same 384 t at <b>3.56 m</b> (101 t spare per fill), so any tunnel can take a full 481 t stage 1 batch if one is out of service. Costs 168 m² more tunnel floor (1,920 vs 1,752 m²). The lower stage 2 pile loses heat faster, so WTT should confirm heat and aeration.</li>
+        <li><b>Preprocessing (rev C):</b> SH-01 primary → <b>TR-01 trommel 80 mm</b>. Unders (65%, assumed) go straight to the bays. Overs (35%) go through <b>SH-03 secondary shredder</b> (~16.3 t/h in the same 1,600 h) and then to the bays. Blazequel (BQ) on both shredder outfeeds. Conveyors between units (no loader).</li>
+        <li><b>5 magnets:</b> M1 after SH-01, M2 on unders, M3 on overs (protects SH-03), M4 after SH-03, M5 on the SP-01 line. At 1.29% ferrous (samples 1–5), ~950 t/yr is recovered, ~870 t before the tunnels. Tunnel figures keep WTT's 75,000 t basis, about 1.2% conservative.</li>
         <li>Batteries 1 kg/t and the fire-water basis are interim. Replace them with Portadown detection and fire records and with NIEA/NIFRS guidance.</li>
       </ol>
     </section>
