@@ -511,7 +511,7 @@ a { color: var(--ink); }
   <div class="blk">
     <div class="ref">§16</div>
     <h2>Preprocessing to 80 mm</h2>
-    <p>SH-01 primary → M1 → TR-01 trommel 80 mm. Unders → M2 → bays. Overs → M3 → SH-03 secondary shredder → M4 → bays. M5 on the SP-01 output line.</p>
+    <p>SH-01 primary → M1 → TR-01 trommel 80 mm. Unders → M2 → bays. Overs → M3 → SH-03 secondary shredder → M4 → bays. Tunnel output goes <b>straight onto trucks to FCG</b> (no secondary processing).</p>
     <div class="calc">trommel feed = 75,000 − M1 581 = <b>74,419 t/yr</b> ÷ 1,600 h = <span class="ans">46.5 t/h</span></div>
     <div class="calc">unders 65% <span class="red">(assumed)</span> = <b>48,372 t</b> · overs 35% = <b>26,047 t</b></div>
     <div class="calc">SH-03 in the same 1,600 h = 26,047 ÷ 1,600 = <span class="ans">16.3 t/h</span></div>
@@ -526,10 +526,12 @@ a { color: var(--ink); }
       <tr><td>M3</td><td>trommel overs, before SH-03</td><td class="n">70% of 232</td><td class="n">162</td></tr>
       <tr><td>M4</td><td>after SH-03</td><td class="n">70% of 70</td><td class="n">49</td></tr>
       <tr><td>M2</td><td>trommel unders</td><td class="n">50% of 155</td><td class="n">77</td></tr>
-      <tr><td>M5</td><td>SP-01 output line</td><td class="n">80% of 99</td><td class="n">79</td></tr>
-      <tr><td colspan="3"><b>total recovered</b></td><td class="n"><b>948</b></td></tr>
+      <tr><td>M5</td><td><span class="red">location TBC</span> (SP-01 removed)</td><td class="n">–</td><td class="n">–</td></tr>
+      <tr><td colspan="3"><b>total recovered (M1–M4)</b></td><td class="n"><b>869</b></td></tr>
     </table>
     <div class="calc">to the tunnels = 75,000 − 869 = <b>74,131 t</b> → 1.2% under WTT's 75,000 t basis (kept as margin)</div>
+    <div class="calc"><span class="lbl">output</span> 336 t per unload ÷ 25 t = <b>13.5 trucks</b> in ~3.6 h → one every <b>~16 min</b>; 52,485 ÷ 25 ÷ 52 = <b>40 trucks/week</b> to FCG</div>
+    <div class="calc"><span class="lbl">loaders</span> no hopper feed: 3,343 − 555 = <b>~2,790 h</b> (turn) or ~2,150 h (single pass) → 2 loaders ✓</div>
     <div class="sticky">The 65% split and every magnet efficiency are placeholders. A trommel trial on Coleraine MSW, or Portadown data, replaces them. M3 matters most: it protects SH-03 from tramp steel.</div>
   </div>
 </section>

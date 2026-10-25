@@ -409,12 +409,6 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["feFe", "Ferrous in MSW (samples 1–5)", "%", 1.29, 0.01],
       ["feRec", "Ferrous caught by M1–M4", "%", 90, 1, true]
     ]},
-    { title: "Secondary processing", open: true, fields: [
-      ["spRate", "Line rated throughput", "t/h", 33, 1],
-      ["spH", "Line running hours", "h/yr", 1600, 50],
-      ["spStart", "Line starts", "hh (24 h)", 13, 0.5, true],
-      ["hopperM3", "Dosing hopper volume", "m³", 60, 5, true]
-    ]},
     { title: "Fire · detection bay", open: true, fields: [
       ["holdH", "Hold before tunnel", "h", 12, 1],
       ["shredStart", "MSW shredding starts", "hh (24 h)", 12, 0.5],
@@ -434,7 +428,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v20";
+  const STORE = "tunnel_plan_v21";
   let state = { build: "b40", v: buildValues("b40") }; // 6 × 40 m is the fixed layout
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
@@ -582,24 +576,12 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     const outH = r.days.reduce((a, x) => a + x.outs.length * bOut, 0) * v.bCycle / 60 * v.weeks;
     const feedH = Math.ceil(shredDay / v.feedRho / v.bucket) * v.bCycle / 60 * WORK * v.weeks;
     r.L1 = r.loaderYrNeed - outH; r.L2 = feedH + outH; r.feedH = feedH; r.outH = outH;
-    // Output route: stage 2 → OS-01 storage bay → DH-01 dosing hopper → SP-01 secondary processing
+    // Output route: tunnel → loader straight onto trucks → FCG (no storage bay, hopper or secondary processing)
     {
-      const emptyH = Math.ceil(r.tOut / v.rho / v.bucket) * v.bCycle / 60;
-      const spH = v.spH, spRate = r.mb.out2 / spH, spHday = spH / (v.weeks * WORK); // rate the line must average to clear the output
-      let cum = 0, lo = Infinity, hi = -Infinity;
-      for (let h = 7 * 24; h < 21 * 24; h++) {
-        const d = Math.floor(h / 24) % 7, hod = h % 24;
-        const n = r.outsPerDow[d];
-        const inW = n * emptyH, inRate = n ? r.tOut * n / inW : 0;
-        cum += inRate * Math.max(0, Math.min(hod + 1, 7 + inW) - Math.max(hod, 7));
-        if (d < WORK) cum -= spRate * Math.max(0, Math.min(hod + 1, v.spStart + spHday) - Math.max(hod, v.spStart));
-        lo = Math.min(lo, cum); hi = Math.max(hi, cum);
-      }
-      const peak = hi - Math.min(0, lo), m3 = peak / v.rho, k = Math.max(1, Math.ceil(m3 / v.pileMax - 1e-9));
-      const hopperT = v.hopperM3 * v.rho;
-      r.os = { spH, peak, m3, bays: k, area: m3 / r.bayH, spRate, spHday, emptyRate: r.tOut / emptyH, hopperT, hopperMin: hopperT / spRate * 60,
-        feedH: r.mb.out2 / v.rho / v.bucket * v.bCycle / 60 };
-      r.loaderTotal = r.L1 + r.L2 + r.os.feedH;
+      const emptyH = bOut * v.bCycle / 60, trucks = r.tOut / v.payOut;
+      r.os = { direct: true, emptyH, emptyRate: r.tOut / emptyH, trucksPerUnload: trucks, truckEveryMin: emptyH * 60 / trucks,
+        trucksWk: r.mb.out2 / v.weeks / v.payOut, feedH: 0 };
+      r.loaderTotal = r.L1 + r.L2;
       r.loaderN = Math.max(1, Math.ceil(r.loaderTotal / v.loaderYr - 1e-9));
     }
     r.peakHeat = Math.max(...r.days.map(x => x.heating));
@@ -614,7 +596,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       { n: r.single ? "Tunnel (single pass)" : "Stage 1 tunnel", m3: r.s1.m3 },
       ...(r.single ? [] : [{ n: "Stage 2 tunnel", m3: r.s2.m3 }]),
       { n: "Hot-load quarantine (1 truck)", m3: v.payIn / v.rho },
-      { n: `Output storage bay, 1 of ${r.os.bays}`, m3: r.os.m3 / r.os.bays }
+      { n: "One outbound truckload", m3: v.payOut / v.rho }
     ].map(x => Object.assign(x, { lpm: x.m3 * v.waterRate, water: x.m3 * v.waterRate * v.waterDur / 1000 }));
     r.fire = {
       li, kgT: v.batKgT, kgDay: shredDay * v.batKgT, kgBay: r.bay.peak * v.batKgT, kgS1: t1 * v.batKgT, tYr: v.Q * v.batKgT / 1000, cellsYr: v.Q * li, cellsDay: shredDay * li, cellsBay: r.bay.peak * li, cellsS1: t1 * li,
@@ -748,7 +730,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       r.shred.mswH > 0
         ? kpi("Shredder, MSW", f1(r.shred.rate), "t/h", `MSW ${f0(r.shred.mswH)} h/yr (${f1(r.shred.hDay)} h/day) · bulky ${f0(r.shred.bulkyH)} h/yr${r.shred.sep ? " on SH-02" : ""}`)
         : kpi("Shredder hours short", f0(-r.shred.mswH), "h/yr", `bulky alone needs ${f0(r.shred.bulkyH)} of ${f0(v.shredAvail)} h, leaving no MSW time`),
-      kpi("Loader hours needed", f0(r.loaderTotal), "h/yr", `${r.loaderN} loader(s) at ${f0(v.loaderYr)} h · incl. feed + hopper · peak day ${f1(r.maxLoaderH)} h`),
+      kpi("Loader hours needed", f0(r.loaderTotal), "h/yr", `${r.loaderN} loader(s) at ${f0(v.loaderYr)} h · incl. shredder feed · peak day ${f1(r.maxLoaderH)} h`),
       kpi("Detection bay", f0(r.fire.bayM3), "m³", `${f0(r.bay.peak)} t · ${f0(r.fire.bayArea)} m² at ${f1(r.bayH)} m`)
     ].join("");
   }
@@ -761,15 +743,15 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
         ? `${2 * r.N} × ${f0(v.L1)} m, <b>single pass</b>: load day 1, 12-day dwell, unload day 14, reload next day. ${f0(r.s1.t)} t per load at ${f2(r.s1.fill)} m. Loads ${r.fillDays}, unloads ${r.unloadDays}: ${r.weekendTasks ? r.weekendTasks + " weekend task(s) per 2 weeks" : "no weekend tunnel work"}.`
         : `${r.N} + ${r.N} (${(v.L1 === 40 && v.L2 === 33) || (v.L1 === 31 && v.L2 === 25) ? "WTT layout" : "identical tunnels"}): stage 1 ${f0(v.L1)} m, stage 2 ${f0(v.L2)} m. ${f0(r.s1.t)} t per fill at ${f2(r.s1.fill)} m (limit ${f2(v.maxFill)} m). Turns ${r.turnDays} into a stage 2 tunnel emptied the same morning.`],
       ["Preprocessing", (() => { const fe = v.Q * v.feFe / 100, feIn = fe * v.feRec / 100, toTr = v.Q - fe * 0.6 /* M1 takes ~60% of ferrous */, ov = toTr * (1 - v.unders / 100);
-        return `SH-01 primary → M1 → <b>TR-01 trommel 80 mm</b> (${f1(toTr / r.shred.mswH)} t/h). Unders ${f0(v.unders)}% (${f0(toTr * v.unders / 100)} t/yr) → M2 → bays. Overs ${f0(100 - v.unders)}% (${f0(ov)} t/yr) → M3 → <b>SH-03 secondary shredder</b> at ~${f1(ov / r.shred.mswH)} t/h → M4 → bays. Blazequel on both shredder outfeeds; conveyors between units. Ferrous ${f2(v.feFe)}% = ${f0(fe)} t/yr; M1–M4 catch ~${f0(feIn)} t before the tunnels, M5 on SP-01 most of the rest. Tunnel figures keep the ${f0(v.Q)} t basis (${f1(feIn / v.Q * 100)}% conservative).`; })()],
+        return `SH-01 primary → M1 → <b>TR-01 trommel 80 mm</b> (${f1(toTr / r.shred.mswH)} t/h). Unders ${f0(v.unders)}% (${f0(toTr * v.unders / 100)} t/yr) → M2 → bays. Overs ${f0(100 - v.unders)}% (${f0(ov)} t/yr) → M3 → <b>SH-03 secondary shredder</b> at ~${f1(ov / r.shred.mswH)} t/h → M4 → bays. Blazequel on both shredder outfeeds; conveyors between units. Ferrous ${f2(v.feFe)}% = ${f0(fe)} t/yr; M1–M4 catch ~${f0(feIn)} t before the tunnels, M5 location to be confirmed (it was on the secondary processing line, now removed). Tunnel figures keep the ${f0(v.Q)} t basis (${f1(feIn / v.Q * 100)}% conservative).`; })()],
       ["Shredding", r.shred.sep ? `SH-01 for MSW only: ${f1(r.shred.rate)} t/h, ${hh(v.shredStart)}–${hh(v.shredStart + b.window)} Mon–Sat, Blazequel fire detection on the outfeed belt (no battery picking station). SH-02 for bulky waste: ≥ ${f0(v.bulkyT / v.sh2Avail)} t/h (${f0(r.shred.bulkyH)} h at ${f0(v.bulkyRate)} t/h). Each machine backs up the other.` : `One shredder for MSW and bulky waste: see the shredder warning.`],
       ["Detection bays", `${bays} bays of ~${f0(perBay)} m³. Each day's shredding goes into its own group of bays. Pile ${f1(r.bayH)} m (${f1(v.bayFb)} m below the ${f1(v.bayWall)} m wall), ${f0(fr.bayArea)} m² in total. Hold ≥ ${f0(v.holdH)} h; actual watch ${f0(b.minAge)}–${f0(b.maxAge)} h. IR cameras with automatic monitor/deluge, and a quarantine bay for one truckload.`],
       ["Daily rhythm", r.single
-        ? `07:00 L1 loads (${r.fillDays}); 07:00 L2 unloads to OS-01 (${r.unloadDays}). ${hh(v.shredStart)} SH-01 shreds into the emptied bays. No turning.`
+        ? `07:00 L1 loads (${r.fillDays}); 07:00 L2 unloads onto trucks for FCG (${r.unloadDays}). ${hh(v.shredStart)} SH-01 shreds into the emptied bays. No turning.`
         : `07:00 L1 fills (${r.fillDays}) and/or turns (${r.turnDays}). ${hh(v.shredStart)} SH-01 shreds into the emptied bays. Morning loading and afternoon shredding never work in the same bays at the same time.`],
-      ["Output route", `${r.single ? "Tunnels" : "Stage 2"} → <b>OS-01 storage bay</b> (peak ${f0(r.os.peak)} t / ${f0(r.os.m3)} m³, ${r.os.bays} bay${r.os.bays > 1 ? "s" : ""}, ${f0(r.os.area)} m² at ${f1(r.bayH)} m) → <b>DH-01 dosing hopper</b> (${f0(v.hopperM3)} m³ ≈ ${f0(r.os.hopperMin)} min of feed) → <b>SP-01 secondary processing</b> ${f0(v.spH)} h/yr, needs ${f1(r.os.spRate)} t/h average (rated ${f0(v.spRate)} t/h${v.spRate < r.os.spRate ? " ✗" : " ✓"}), ${hh(v.spStart)}–${hh(v.spStart + r.os.spHday)}. A tunnel can't go straight to the hopper: emptying runs at ~${f0(r.os.emptyRate)} t/h ${r.single ? "so the tunnel can be reloaded next morning" : "so the turn can start"}, against ${f1(r.os.spRate)} t/h on the line.`],
+      ["Output route", `${r.single ? "Tunnels" : "Stage 2"} → loader <b>straight onto trucks → FCG</b>. ${f0(r.tOut)} t per unload = ${f1(r.os.trucksPerUnload)} trucks of ${f0(v.payOut)} t in ~${f1(r.os.emptyH)} h, one every ~${f0(r.os.truckEveryMin)} min; ${f0(r.os.trucksWk)} trucks/week. No storage bay, dosing hopper or secondary processing.`],
       ["Loaders", (() => { const n = r.loaderN, per = r.loaderTotal / Math.max(1, n - 1);
-        return `${f0(r.loaderTotal)} h/yr of loader work (${f0(v.bucket)} m³): tunnels ${f0(r.L1)} h, shredder feed + ${r.single ? "unloading" : "stage 2 emptying"} ${f0(r.L2)} h, hopper feed ${f0(r.os.feedH)} h. ` +
+        return `${f0(r.loaderTotal)} h/yr of loader work (${f0(v.bucket)} m³): tunnels ${f0(r.L1)} h, shredder feed + ${r.single ? "unloading" : "stage 2 emptying"} to trucks ${f0(r.L2)} h. ` +
           (n >= 3 && per <= v.loaderYr * 1.1 ? `<b>${n - 1} loaders at ~${f0(per)} h each</b> (${f0((per / v.loaderYr - 1) * 100)}% over ${f0(v.loaderYr)} h) or ${n} loaders.` : `<b>${n} loader${n > 1 ? "s" : ""}</b> at ${f0(v.loaderYr)} h each.`); })()],
       ["Heat & fire water", `Heat plant sized to the staggered peak, ${f0(r.peakKw)} kW plus margin (WTT method gives ${f0(v.kw * r.N)} kW). Fire water ${f0(fr.governing.lpm)} l/min for ${f0(v.waterDur / 60)} h = ${f0(fr.governing.water)} m³, governed by the ${fr.governing.n.toLowerCase()}, with containment to match plus rainfall.`]
     ];
@@ -794,12 +776,10 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     } else add("ok", `Second tunnel available for turning: each turn goes into a stage 2 tunnel that was emptied to output earlier the same day (${r.plan.map(p => `${T(p.s1)}→${T(p.s2)} ${DAYS[p.turn]}`).join(", ")}).`);
     if (!r.single && r.res1 < 7) add("warn", `Stage 1 residence is ${r.res1} days (refill to turn) against WTT's 7. WTT's evaporation and degradation for stage 1 may be slightly optimistic. Confirm with WTT that 6 + 7 days still meets the stage 2 output spec.`);
     { const n = r.loaderN, per = r.loaderTotal / Math.max(1, n - 1);
-      if (n >= 3 && per <= v.loaderYr * 1.1) add("warn", `Loaders: ${f0(r.loaderTotal)} h/yr in total (tunnels ${f0(r.L1)} h, shredder feed + emptying ${f0(r.L2)} h, dosing hopper feed ${f0(r.os.feedH)} h). ${n - 1} loaders would each run ~${f0(per)} h, ${f0((per / v.loaderYr - 1) * 100)}% over ${f0(v.loaderYr)} h. Run them slightly longer or add one more. (Cycle time is assumed.)`);
-      else if (n > 2) add("crit", `Loaders: ${f0(r.loaderTotal)} h/yr in total needs ${n} loaders at ${f0(v.loaderYr)} h each (tunnels ${f0(r.L1)} h, shredder feed + emptying ${f0(r.L2)} h, hopper feed ${f0(r.os.feedH)} h).`);
+      if (n >= 3 && per <= v.loaderYr * 1.1) add("warn", `Loaders: ${f0(r.loaderTotal)} h/yr in total (tunnels ${f0(r.L1)} h, shredder feed + emptying ${f0(r.L2)} h). ${n - 1} loaders would each run ~${f0(per)} h, ${f0((per / v.loaderYr - 1) * 100)}% over ${f0(v.loaderYr)} h. Run them slightly longer or add one more. (Cycle time is assumed.)`);
+      else if (n > 2) add("crit", `Loaders: ${f0(r.loaderTotal)} h/yr in total needs ${n} loaders at ${f0(v.loaderYr)} h each (tunnels ${f0(r.L1)} h, shredder feed + emptying ${f0(r.L2)} h).`);
       else add("ok", `Loaders: ${f0(r.loaderTotal)} h/yr in total fits ${n} loader${n > 1 ? "s" : ""} at ${f0(v.loaderYr)} h.`); }
-    if (v.spRate * v.spH < r.mb.out2 - 1) add("crit", `SP-01: rated ${f0(v.spRate)} t/h × ${f0(v.spH)} h = ${f0(v.spRate * v.spH)} t/yr, short of the ${f0(r.mb.out2)} t/yr stage 2 output by ${f0(r.mb.out2 - v.spRate * v.spH)} t. Either the line averages <b>${f1(r.mb.out2 / v.spH)} t/h</b> in ${f0(v.spH)} h, or it runs <b>${f0(r.mb.out2 / v.spRate)} h/yr</b> at ${f0(v.spRate)} t/h (${f1(r.mb.out2 / v.spRate / (v.weeks * WORK))} h/day).${r.N === 3 ? " Build 2 doubles this." : ""}`);
-    else add("ok", `SP-01: ${f0(v.spRate)} t/h × ${f0(v.spH)} h = ${f0(v.spRate * v.spH)} t/yr covers the ${f0(r.mb.out2)} t/yr output.`);
-    add("info", `Output: stage 2 empties ${f0(r.tOut)} t per tunnel into OS-01 at ~${f0(r.os.emptyRate)} t/h. SP-01 draws ${f0(r.mb.out2 / (v.weeks * WORK))} t/day at ${f1(r.os.spRate)} t/h through DH-01. OS-01 peaks at ${f0(r.os.peak)} t (${f0(r.os.m3)} m³), so ${r.os.bays} bay${r.os.bays > 1 ? "s" : ""} ≤ ${f0(v.pileMax)} m³. The output still carries batteries, so it needs IR and deluge like the detection bays. (Hopper size and output density are assumed.)`);
+    add("warn", `Output goes straight onto trucks for FCG: ${f1(r.os.trucksPerUnload)} trucks per ${f0(r.tOut)} t unload (one every ~${f0(r.os.truckEveryMin)} min for ~${f1(r.os.emptyH)} h), ${f0(r.os.trucksWk)} a week. With no storage bay, a late or missing truck stops the unload, and the ${r.single ? "reload" : "turn"} behind it waits. Book trucks against the unload days (${r.unloadDays}) and keep an emergency set-down area. FCG receives the material with its batteries (~${f0(r.fire.tYr)} t/yr at ${f1(v.batKgT)} kg/t).`);
     if (r.fire.bayM3 > v.pileMax) add("info", `Detection bay peaks at ${f0(r.fire.bayM3)} m³, above the ${f0(v.pileMax)} m³ pile limit. Split into ${r.fire.bays} fire-separated bays (${f0(r.fire.bayArea)} m² floor in total at ${f1(r.bayH)} m pile height).`);
     if (r.bay.maxAge / 24 > v.dwellMax) add("warn", `Oldest shredded waste sits ${f0(r.bay.maxAge)} h (${f1(r.bay.maxAge / 24)} days) in the bay: Saturday's shredding waits over Sunday. That's over the ${f1(v.dwellMax)}-day target.`);
     if (r.shred.sep) {
@@ -823,7 +803,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     document.getElementById("ganttTitle").textContent = r.single ? "14-day tunnel rotation (single pass)" : "Weekly tunnel plan";
     head.innerHTML = r.single
       ? `<p class="sub">Each tunnel: load on day 1, dwell 12 days, unload on day 14, reload the next day. Weeks A and B repeat. Shaded columns are weekends.</p>
-         <div class="legend"><span><i style="background:var(--s-fill)"></i>L Load from detection bay</span><span><i style="background:var(--s-out)"></i>U Unload to OS-01</span><span><i style="background:var(--s-heat)"></i>Heating (assumed)</span><span><i style="background:var(--s-comp)"></i>Dwell day</span></div>`
+         <div class="legend"><span><i style="background:var(--s-fill)"></i>L Load from detection bay</span><span><i style="background:var(--s-out)"></i>U Unload onto trucks → FCG</span><span><i style="background:var(--s-heat)"></i>Heating (assumed)</span><span><i style="background:var(--s-comp)"></i>Dwell day</span></div>`
       : head.dataset.two;
     if (r.single) return renderGanttSingle(v, r);
     const svg = document.getElementById("gantt");
@@ -887,7 +867,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
         const st = row[d], x = left + d * cell, k = (d - p.L + 14) % 14;
         let label, glyph = "", tipx = "";
         if (st === "fill") { label = "Load (day 1) from detection bay"; glyph = "L"; tipx = tr("Load", `${f0(r.s1.t)} t · ${f0(r.s1.m3)} m³`) + tr("Fill height", f2(r.s1.fill) + " m"); }
-        else if (st === "out") { label = "Unload (day 14) to OS-01"; glyph = "U"; tipx = tr("Out", `${f0(r.tOut)} t`); }
+        else if (st === "out") { label = "Unload (day 14) onto trucks → FCG"; glyph = "U"; tipx = tr("Out", `${f0(r.tOut)} t`); }
         else if (st === "heat") { label = `Dwell day ${k}, heating`; glyph = String(k); tipx = tr("Heat", f0(v.kw) + " kW"); }
         else { label = `Dwell day ${k}`; glyph = String(k); }
         s += `<rect x="${x + 1}" y="${y + 2}" width="${cell - 2}" height="${rowH - 4}" rx="3" fill="${COL[st]}" data-tip="${esc(`<b>${T(i)} · ${DAYS[d % 7]} wk ${d < 7 ? "A" : "B"}</b><br>${label}` + tipx)}"/>`;
@@ -903,7 +883,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     const bayByDow = {}; r.bay.byDay.forEach(x => bayByDow[x.dow] = x);
     const rows = r.days.map(x => {
       const steps = [];
-      if (r.single) x.outs.forEach(p => steps.push(`① Unload ${T(p.s2)} → OS-01 (${f0(r.tOut)} t)`));
+      if (r.single) x.outs.forEach(p => steps.push(`① Unload ${T(p.s2)} → trucks → FCG (${f0(r.tOut)} t)`));
       x.turns.forEach(p => steps.push(`① Empty ${T(p.s2)} → output (${f0(r.tOut)} t)`, `② Turn ${T(p.s1)} → ${T(p.s2)} (${f0(r.s2.t)} t)`));
       x.fills.forEach(p => steps.push(`③ ${r.single ? "Load" : "Fill"} ${T(p.s1)} from bay (${f0(r.s1.t)} t)`));
       if (r.single && x.dow >= 5) steps.push("No tunnel work. Dwell days count through the weekend");
@@ -1039,7 +1019,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["Bay → stage 1 fill", `${f0(r.s1.t)} t per fill · ${f1(fr.kgS1 / 1000)} t batteries (≈ ${f0(fr.cellsS1)})`, "Take material from the cleared face only; check with a handheld thermal camera before each fill; stop filling on any camera alarm"],
       ["Stage 1 → stage 2 turn", `${r.N} turns/week`, "The receiving stage 2 tunnel must be empty and inspected before the turn starts (step ①). Turning is also a second chance to spot hot spots: pile-temperature probes and a rate-of-rise alarm"],
       ["Stage 2 (heated)", `${f0(v.kw)} kW per tunnel · ${v.hDays} days`, "High-temperature trip on the heater, separate from the process control; cut heat and aeration on any fire alarm"],
-      ["Output → secondary processing", `OS-01 ${f0(r.os.m3)} m³ · ${f0(fr.tYr)} t/yr batteries (≈ ${f0(fr.cellsYr)})`, "Composting doesn't destroy cells. Put IR cameras and deluge on OS-01, fire detection on the SP-01 belts, and magnet/eddy-current separation early in SP-01. Treat the output store as a battery-bearing pile"]
+      ["Output → trucks → FCG", `${f0(r.os.trucksWk)} trucks/week · ${f0(fr.tYr)} t/yr batteries (≈ ${f0(fr.cellsYr)})`, "Composting doesn't destroy cells. Thermal-camera check of each truckload before it leaves, sheeted loads, and a written hot-load procedure agreed with FCG and the haulier"]
     ];
     document.getElementById("fireCtrl").innerHTML =
       `<thead><tr><th>Stage</th><th>Exposure</th><th style="white-space:normal">Controls to include in the FPP</th></tr></thead><tbody>` +
@@ -1127,12 +1107,12 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["Fill height (m)", x => x.single ? (x.v.L1 === x.v.L2 ? `${f2(x.s1.fill)} (all)` : `${f2(x.s1.fill)} / <b style="color:var(--crit)">${f2(x.fillShort)} ✗</b>`) : `${f2(x.s1.fill)} / ${f2(x.s2.fill)}`],
       ["Tunnel floor built (m²)", x => x.N * (x.v.L1 + x.v.L2) * x.v.Wd, 0],
       ["Loader time, peak day (h)", x => x.maxLoaderH, 1],
-      ["Loader hours incl. feed + hopper (h/yr)", x => x.loaderTotal, 0],
+      ["Loader hours incl. shredder feed (h/yr)", x => x.loaderTotal, 0],
       ["Loaders at 1,600 h", x => x.loaderN, 0],
       ["Detection bay peak (t)", x => x.bay.peak, 0],
       ["Detection bay peak (m³)", x => x.fire.bayM3, 0],
       ["Fire bays ≤ pile limit", x => x.fire.bays, 0],
-      ["OS-01 storage peak (m³)", x => x.os.m3, 0],
+      ["Trucks to FCG per week", x => x.os.trucksWk, 0],
       ["Largest pile (fire water, m³)", x => x.fire.governing.water, 0],
       ["Heat per heated tunnel (kW)", x => x.v.kw, 0],
       ["Heat peak, staggered (kW)", x => x.peakKw, 0],
@@ -1155,7 +1135,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
         lines.push([x.name, "", "1 Empty to output", T(p.s2), "Output", r.tOut.toFixed(1), (r.tOut / r.v.rho).toFixed(1)].join(","));
         lines.push([x.name, "", "2 Turn", T(p.s1), T(p.s2), r.s2.t.toFixed(1), r.s2.m3.toFixed(1)].join(","));
       });
-      if (r.single) x.outs.forEach(p => lines.push([x.name, "", "1 Unload to OS-01", T(p.s2), "OS-01", r.tOut.toFixed(1), (r.tOut / r.v.rho).toFixed(1)].join(",")));
+      if (r.single) x.outs.forEach(p => lines.push([x.name, "", "1 Unload to trucks", T(p.s2), "FCG", r.tOut.toFixed(1), (r.tOut / r.v.rho).toFixed(1)].join(",")));
       x.fills.forEach(p => lines.push([x.name, "", "3 Fill from bay", "Bay", T(p.s1), r.s1.t.toFixed(1), r.s1.m3.toFixed(1)].join(",")));
     });
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
