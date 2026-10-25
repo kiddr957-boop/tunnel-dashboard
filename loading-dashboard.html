@@ -208,7 +208,6 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     </div>
     <div class="seg" id="buildSeg" role="group" aria-label="Build phase">
       <button data-build="b40">Build 1 · 6 × 40 m · selected</button>
-      <button data-build="b8">Build 1 · 8 × 40 m · 75 kt</button>
       <button data-build="b2">Build 2 · 12 × 40 m · 150 kt</button>
       <button data-build="custom" disabled>Custom</button>
     </div>
@@ -326,8 +325,8 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     </section>
 
     <section class="card">
-      <h2>Layout comparison</h2>
-      <p class="sub">All layouts use 40 × 8 × 6 m tunnels: 6 × 40 m (selected) and 8 × 40 m for 75 kt, and 12 × 40 m for Build 2, all run with your current density, equipment and fire inputs.</p>
+      <h2>Build 1 vs Build 2</h2>
+      <p class="sub">Both build phases use 40 × 8 × 6 m tunnels: Build 1 6 × 40 m (75 kt) and Build 2 12 × 40 m (150 kt), all run with your current density, equipment and fire inputs.</p>
       <div class="tblwrap"><table id="cmpTable" class="cmp"></table></div>
     </section>
 
@@ -438,7 +437,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v22";
+  const STORE = "tunnel_plan_v23";
   let state = { build: "b40", v: buildValues("b40") }; // 6 × 40 m is the fixed layout
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
@@ -692,7 +691,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     document.getElementById("undersRange").addEventListener("input", e => { state.v.unders = +e.target.value; state.build = matchBuild(state.v); render(); });
   }
   function matchBuild(v) {
-    for (const b of ["b40", "b8", "b2"]) {
+    for (const b of ["b40", "b2"]) {
       const p = buildValues(b);
       if (Object.keys(p).every(k => k === "rho" || k === "mode" || Math.abs(p[k] - v[k]) < 1e-9)) return b;
     }
@@ -1115,7 +1114,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
 
   // ---------- Build comparison ----------
   function renderCompare(v) {
-    const keys = ["b40", "b8", "b2"];
+    const keys = ["b40", "b2"];
     const R = keys.map(k => compute(Object.assign({}, v, BUILDS[k])));
     const rows = [
       ["Throughput (t/yr)", x => x.v.Q, 0],
