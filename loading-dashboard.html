@@ -207,10 +207,9 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       <button data-mode="1">Single pass 14 d</button>
     </div>
     <div class="seg" id="buildSeg" role="group" aria-label="Build phase">
-      <button data-build="b1">Build 1 · 6 tunnels · 75 kt</button>
       <button data-build="b40">Build 1 · 6 × 40 m · selected</button>
-      <button data-build="b8">Build 1 · 8 tunnels · 75 kt</button>
-      <button data-build="b2">Build 2 · 12 tunnels · 150 kt</button>
+      <button data-build="b8">Build 1 · 8 × 40 m · 75 kt</button>
+      <button data-build="b2">Build 2 · 12 × 40 m · 150 kt</button>
       <button data-build="custom" disabled>Custom</button>
     </div>
     <button id="btnReset" title="Reload the selected build phase defaults">Reset</button>
@@ -318,7 +317,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
 
     <section class="card">
       <h2>Layout comparison</h2>
-      <p class="sub">The 75 kt layouts (WTT 6-tunnel, 6 identical 40 m tunnels, WTT 8-tunnel) and Build 2 all run with your current density, equipment and fire inputs.</p>
+      <p class="sub">All layouts use 40 × 8 × 6 m tunnels: 6 × 40 m (selected) and 8 × 40 m for 75 kt, and 12 × 40 m for Build 2, all run with your current density, equipment and fire inputs.</p>
       <div class="tblwrap"><table id="cmpTable" class="cmp"></table></div>
     </section>
 
@@ -356,12 +355,12 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     kw: 1282814 / (52 * 3 * 4 * 24) // kW per heated tunnel
   };
   const BUILDS = {
-    b1: { Q: 75000, N: 3, L1: 40, L2: 33, kw: +RATE.kw.toFixed(2) },
     b40: { Q: 75000, N: 3, L1: 40, L2: 40, kw: +RATE.kw.toFixed(2) }, // 6 identical 40 m tunnels
-    b8: { Q: 75000, N: 4, L1: 31, L2: 25, kw: +(RATE.kw * 3 / 4).toFixed(2) }, // same heat spread over 4 heated tunnels
-    b2: { Q: 150000, N: 6, L1: 40, L2: 33, kw: +RATE.kw.toFixed(2) }
+    // All tunnels are 40 m × 8 m × 6 m
+    b8: { Q: 75000, N: 4, L1: 40, L2: 40, kw: +(RATE.kw * 3 / 4).toFixed(2) }, // same heat spread over 4 heated tunnels
+    b2: { Q: 150000, N: 6, L1: 40, L2: 40, kw: +RATE.kw.toFixed(2) }
   };
-  const BUILD_LABEL = { b1: "6 tunnels (40/33 m)", b40: "6 × 40 m (selected)", b8: "8 tunnels (31/25 m)", b2: "12 tunnels · 150 kt" };
+  const BUILD_LABEL = { b40: "6 × 40 m (selected)", b8: "8 × 40 m", b2: "12 × 40 m · 150 kt" };
 
   // ---------- Input schema: [key, label, unit, default, step, assumed] ----------
   const GROUPS = [
@@ -430,7 +429,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v18";
+  const STORE = "tunnel_plan_v19";
   let state = { build: "b40", v: buildValues("b40") }; // 6 × 40 m is the fixed layout
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
@@ -695,7 +694,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     densRange.addEventListener("input", () => { state.v.rho = +densRange.value / 1000; render(); });
   }
   function matchBuild(v) {
-    for (const b of ["b1", "b40", "b8", "b2"]) {
+    for (const b of ["b40", "b8", "b2"]) {
       const p = buildValues(b);
       if (Object.keys(p).every(k => k === "rho" || k === "mode" || Math.abs(p[k] - v[k]) < 1e-9)) return b;
     }
@@ -1111,7 +1110,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
 
   // ---------- Build comparison ----------
   function renderCompare(v) {
-    const keys = ["b1", "b40", "b8", "b2"];
+    const keys = ["b40", "b8", "b2"];
     const R = keys.map(k => compute(Object.assign({}, v, BUILDS[k])));
     const rows = [
       ["Throughput (t/yr)", x => x.v.Q, 0],
