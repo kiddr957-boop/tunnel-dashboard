@@ -208,7 +208,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     </div>
     <div class="seg" id="buildSeg" role="group" aria-label="Build phase">
       <button data-build="b40">Build 1 · 6 × 40 m · selected</button>
-      <button data-build="b2">Build 2 · 12 × 40 m · 150 kt</button>
+      <button data-build="b2">Build 2 · 12 × 40 m · 2 shifts</button>
       <button data-build="custom" disabled>Custom</button>
     </div>
     <button id="btnReset" title="Reload the selected build phase defaults">Reset</button>
@@ -367,9 +367,9 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
     b40: { Q: 75000, N: 3, L1: 40, L2: 40, kw: +RATE.kw.toFixed(2) }, // 6 identical 40 m tunnels
     // All tunnels are 40 m × 8 m × 6 m
     b8: { Q: 75000, N: 4, L1: 40, L2: 40, kw: +(RATE.kw * 3 / 4).toFixed(2) }, // same heat spread over 4 heated tunnels
-    b2: { Q: 150000, N: 6, L1: 40, L2: 40, kw: +RATE.kw.toFixed(2) }
+    b2: { Q: 150000, N: 6, L1: 40, L2: 40, kw: +RATE.kw.toFixed(2), shredAvail: 3200, loaderYr: 3200, shredStart: 6, fillStart: 6 } // Build 2: two shifts (shred 06:00–16:16, fill 06:00)
   };
-  const BUILD_LABEL = { b40: "6 × 40 m (selected)", b8: "8 × 40 m", b2: "12 × 40 m · 150 kt" };
+  const BUILD_LABEL = { b40: "6 × 40 m (selected)", b8: "8 × 40 m", b2: "12 × 40 m · 150 kt · 2 shifts" };
 
   // ---------- Input schema: [key, label, unit, default, step, assumed] ----------
   const GROUPS = [
@@ -433,7 +433,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v24";
+  const STORE = "tunnel_plan_v25";
   let state = { build: "b40", v: buildValues("b40") }; // 6 × 40 m is the fixed layout
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
