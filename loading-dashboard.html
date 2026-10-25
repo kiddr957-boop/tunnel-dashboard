@@ -229,6 +229,16 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       </div>
       <div class="densticks"><span>350</span><span>+10%</span><span>420 (+20%)</span></div>
     </div>
+    <div class="card dens">
+      <h2>Trommel 80 mm unders</h2>
+      <p class="sub" style="margin-bottom:6px">Share of shredded MSW passing 80 mm. The rest (overs) goes through SH-03.</p>
+      <div class="densrow">
+        <input type="range" id="undersRange" min="10" max="90" step="1" aria-label="Trommel unders percentage">
+        <span class="num" id="undersVal"></span>
+      </div>
+      <div class="densticks"><span>10%</span><span>50%</span><span>90%</span></div>
+      <p class="sub" id="undersOut" style="margin:8px 0 0"></p>
+    </div>
     <div id="inputs"></div>
   </aside>
 
@@ -405,7 +415,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       ["shredAvail", "SH-01 available", "h/yr", 1600, 50]
     ]},
     { title: "Preprocessing (trommel + magnets)", open: true, fields: [
-      ["unders", "Trommel 80 mm unders", "%", 65, 1, true],
+      ["unders", "Trommel 80 mm unders", "%", 35, 1],
       ["feFe", "Ferrous in MSW (samples 1–5)", "%", 1.29, 0.01],
       ["feRec", "Ferrous caught by M1–M4", "%", 90, 1, true]
     ]},
@@ -428,7 +438,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
   const buildValues = b => Object.assign({}, DEFAULTS, BUILDS[b]);
 
   // ---------- State ----------
-  const STORE = "tunnel_plan_v21";
+  const STORE = "tunnel_plan_v22";
   let state = { build: "b40", v: buildValues("b40") }; // 6 × 40 m is the fixed layout
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || "null");
@@ -679,6 +689,7 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       render();
     });
     densRange.addEventListener("input", () => { state.v.rho = +densRange.value / 1000; render(); });
+    document.getElementById("undersRange").addEventListener("input", e => { state.v.unders = +e.target.value; state.build = matchBuild(state.v); render(); });
   }
   function matchBuild(v) {
     for (const b of ["b40", "b8", "b2"]) {
@@ -695,6 +706,13 @@ svg text { font-family: 'IBM Plex Sans', system-ui, sans-serif; }
       inp.classList.toggle("changed", Math.abs(base[k] - state.v[k]) > 1e-9);
     });
     densRange.value = Math.round(state.v.rho * 1000);
+    {
+      const v = state.v, fe = v.Q * v.feFe / 100, toTr = v.Q - fe * 0.6, un = toTr * v.unders / 100, ov = toTr - un;
+      const h = v.shredAvail, rate = ov / h;
+      document.getElementById("undersRange").value = Math.round(v.unders);
+      document.getElementById("undersVal").textContent = `${f0(v.unders)}% unders`;
+      document.getElementById("undersOut").innerHTML = `Unders <b>${f0(un)}</b> t/yr → bays · overs <b>${f0(ov)}</b> t/yr → SH-03 at <b>${f1(rate)} t/h</b> in ${f0(h)} h (${f0(100 - v.unders)}% of the trommel feed).`;
+    }
     const pct = (state.v.rho / 0.35 - 1) * 100;
     document.getElementById("densVal").textContent = `${f0(state.v.rho * 1000)} kg/m³ (${pct >= 0 ? "+" : ""}${f0(pct)}%)`;
     document.querySelectorAll("#buildSeg button").forEach(b => b.classList.toggle("active", b.dataset.build === state.build));
